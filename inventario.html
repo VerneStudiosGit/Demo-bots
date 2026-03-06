@@ -5,25 +5,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>Inventario de Equipos – Verne Studios</title>
   <style>
-    /* ── Reset ── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
       --bg:       #0F1117;
       --surface:  #1A1D27;
       --surface2: #252836;
+      --surface3: #2E3147;
       --primary:  #6C63FF;
       --primary2: #A89CFF;
       --accent:   #FF6584;
       --green:    #43D9AD;
       --yellow:   #FFD166;
       --orange:   #FF9F43;
+      --blue:     #4ECDC4;
       --text:     #EAEAEA;
       --muted:    #8A8FA8;
       --border:   rgba(255,255,255,.07);
       --radius:   18px;
       --safe-top: env(safe-area-inset-top, 0px);
       --safe-bot: env(safe-area-inset-bottom, 0px);
+    }
+
+    [data-theme="light"] {
+      --bg:       #F2F3F7;
+      --surface:  #FFFFFF;
+      --surface2: #E8E9F0;
+      --surface3: #DDE0EC;
+      --text:     #1A1A2E;
+      --muted:    #6B7280;
+      --border:   rgba(0,0,0,.08);
     }
 
     html, body {
@@ -33,6 +44,8 @@
       color: var(--text);
       -webkit-font-smoothing: antialiased;
     }
+
+    [data-theme="light"] body { background: #DDE0EC; }
 
     .shell {
       max-width: 430px;
@@ -44,6 +57,26 @@
       display: flex;
       flex-direction: column;
     }
+
+    @media (min-width: 500px) {
+      .shell {
+        margin-top: 20px; margin-bottom: 20px;
+        min-height: calc(100dvh - 40px);
+        border-radius: 44px;
+        box-shadow: 0 30px 80px rgba(0,0,0,.7);
+        overflow: hidden;
+      }
+      .bottom-nav { border-radius: 0 0 44px 44px; }
+    }
+
+    /* ── View management ── */
+    .view {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .view.active { display: flex; }
 
     .scroll-area {
       flex: 1;
@@ -61,6 +94,7 @@
       padding-left: 20px; padding-right: 20px;
       background: var(--bg);
       position: sticky; top: 0; z-index: 50;
+      flex-shrink: 0;
     }
     .status-bar .time { font-size: .82rem; font-weight: 600; }
     .status-bar .icons { display: flex; gap: 6px; align-items: center; }
@@ -71,7 +105,8 @@
       display: flex; align-items: center; justify-content: space-between;
       padding: 8px 20px 16px;
       background: var(--bg);
-      position: sticky; top: 44px; z-index: 49;
+      position: sticky; top: calc(44px + var(--safe-top)); z-index: 49;
+      flex-shrink: 0;
       gap: 12px;
     }
     .topbar-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
@@ -80,53 +115,124 @@
       background: var(--surface2);
       border: 1px solid var(--border);
       display: flex; align-items: center; justify-content: center;
-      text-decoration: none; flex-shrink: 0;
+      cursor: pointer; flex-shrink: 0; color: var(--text);
     }
-    .topbar h1 { font-size: 1.1rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .topbar h1 { font-size: 1.15rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .topbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-
     .icon-btn {
       width: 38px; height: 38px; border-radius: 12px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
+      background: var(--surface2); border: 1px solid var(--border);
       display: flex; align-items: center; justify-content: center;
-      cursor: pointer; font-size: 1rem;
-      transition: background .2s;
-      flex-shrink: 0;
+      cursor: pointer; font-size: 1rem; transition: background .2s; flex-shrink: 0;
     }
-    .icon-btn:active { opacity: .7; }
 
-    /* ── Stats summary ── */
-    .stats-strip {
-      display: flex; gap: 10px;
-      padding: 0 20px 20px;
-      overflow-x: auto; scrollbar-width: none;
+    /* ── Dashboard ── */
+    .dash-hero {
+      margin: 0 20px 20px;
+      background: linear-gradient(135deg, var(--primary) 0%, #4c46c4 100%);
+      border-radius: var(--radius);
+      padding: 22px 20px;
+      color: #fff;
+      position: relative;
+      overflow: hidden;
     }
-    .stats-strip::-webkit-scrollbar { display: none; }
-    .stat-pill {
-      flex-shrink: 0;
+    .dash-hero::before {
+      content: '';
+      position: absolute;
+      width: 140px; height: 140px;
+      background: rgba(255,255,255,.07);
+      border-radius: 50%;
+      top: -30px; right: -30px;
+    }
+    .dash-hero::after {
+      content: '';
+      position: absolute;
+      width: 80px; height: 80px;
+      background: rgba(255,255,255,.05);
+      border-radius: 50%;
+      bottom: -20px; left: 40px;
+    }
+    .dash-hero .hero-label { font-size: .75rem; opacity: .75; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+    .dash-hero .hero-num   { font-size: 2.8rem; font-weight: 900; line-height: 1; margin-top: 4px; }
+    .dash-hero .hero-sub   { font-size: .8rem; opacity: .7; margin-top: 6px; }
+    .dash-hero .hero-row   { display: flex; gap: 20px; margin-top: 18px; }
+    .dash-hero .hero-stat  { text-align: center; }
+    .dash-hero .hero-stat .sn { font-size: 1.2rem; font-weight: 800; }
+    .dash-hero .hero-stat .sl { font-size: .68rem; opacity: .7; margin-top: 2px; }
+
+    .dash-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 12px; padding: 0 20px 20px;
+    }
+    .dash-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+    .dash-card .dc-icon { font-size: 1.5rem; margin-bottom: 10px; }
+    .dash-card .dc-num  { font-size: 1.6rem; font-weight: 900; }
+    .dash-card .dc-lbl  { font-size: .72rem; color: var(--muted); margin-top: 3px; }
+    .dc-num.green  { color: var(--green); }
+    .dc-num.yellow { color: var(--yellow); }
+    .dc-num.pink   { color: var(--accent); }
+    .dc-num.blue   { color: var(--blue); }
+    .dc-num.purple { color: var(--primary2); }
+
+    .sec-label {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 20px 12px;
+    }
+    .sec-label h3 { font-size: .97rem; font-weight: 700; }
+    .sec-label .see-all { font-size: .8rem; color: var(--primary2); cursor: pointer; }
+
+    /* Recent activity */
+    .activity-list { padding: 0 20px; display: flex; flex-direction: column; gap: 10px; }
+    .activity-item {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 14px;
-      padding: 12px 16px;
-      min-width: 90px;
-      text-align: center;
+      padding: 14px;
+      display: flex; align-items: center; gap: 12px;
     }
-    .stat-pill .num { font-size: 1.3rem; font-weight: 800; }
-    .stat-pill .lbl { font-size: .68rem; color: var(--muted); margin-top: 2px; }
-    .num.green  { color: var(--green); }
-    .num.yellow { color: var(--yellow); }
-    .num.pink   { color: var(--accent); }
-    .num.purple { color: var(--primary2); }
+    .activity-icon {
+      width: 40px; height: 40px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; flex-shrink: 0;
+    }
+    .activity-info { flex: 1; min-width: 0; }
+    .activity-info .ai-title { font-size: .85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .activity-info .ai-sub   { font-size: .73rem; color: var(--muted); margin-top: 2px; }
+    .activity-time { font-size: .7rem; color: var(--muted); flex-shrink: 0; }
 
-    /* ── Search ── */
-    .search-wrap { padding: 0 20px 16px; }
-    .search-box {
+    /* Category bar */
+    .cat-bar { padding: 0 20px 20px; }
+    .cat-bar-inner {
       background: var(--surface);
-      border-radius: 14px;
-      display: flex; align-items: center; gap: 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .cat-row {
+      display: flex; align-items: center;
       padding: 13px 16px;
-      border: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .cat-row:last-child { border-bottom: none; }
+    .cat-row:active { background: var(--surface2); }
+    .cat-row .cr-emoji { font-size: 1.2rem; width: 30px; flex-shrink: 0; }
+    .cat-row .cr-label { flex: 1; font-size: .88rem; font-weight: 600; }
+    .cat-row .cr-count { font-size: .82rem; color: var(--muted); margin-right: 8px; }
+    .cat-row .cr-chevron { color: var(--muted); }
+
+    /* ── Equipment List ── */
+    .search-wrap { padding: 0 20px 14px; }
+    .search-box {
+      background: var(--surface); border-radius: 14px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 13px 16px; border: 1px solid var(--border);
     }
     .search-box svg { flex-shrink: 0; opacity: .5; }
     .search-box input {
@@ -135,51 +241,41 @@
     }
     .search-box input::placeholder { color: var(--muted); }
 
-    /* ── Chips ── */
     .chips-scroll {
       display: flex; gap: 10px;
-      padding: 0 20px 20px;
-      overflow-x: auto; scrollbar-width: none;
+      padding: 0 20px 18px; overflow-x: auto; scrollbar-width: none;
     }
     .chips-scroll::-webkit-scrollbar { display: none; }
     .chip {
-      flex-shrink: 0;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 40px;
-      padding: 8px 16px;
-      font-size: .82rem; font-weight: 500;
-      color: var(--muted); cursor: pointer;
-      transition: all .2s;
+      flex-shrink: 0; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 40px;
+      padding: 8px 16px; font-size: .82rem; font-weight: 500;
+      color: var(--muted); cursor: pointer; transition: all .2s;
     }
-    .chip.active {
-      background: var(--primary);
-      border-color: var(--primary);
-      color: #fff;
-    }
+    .chip.active { background: var(--primary); border-color: var(--primary); color: #fff; }
 
-    /* ── Section label ── */
-    .sec-label {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 20px 12px;
+    /* Stats strip */
+    .stats-strip {
+      display: flex; gap: 10px;
+      padding: 0 20px 18px; overflow-x: auto; scrollbar-width: none;
     }
-    .sec-label h3 { font-size: .95rem; font-weight: 700; }
-    .sec-label span { font-size: .8rem; color: var(--muted); }
+    .stats-strip::-webkit-scrollbar { display: none; }
+    .stat-pill {
+      flex-shrink: 0; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 14px;
+      padding: 10px 16px; min-width: 80px; text-align: center;
+    }
+    .stat-pill .num { font-size: 1.2rem; font-weight: 800; }
+    .stat-pill .lbl { font-size: .66rem; color: var(--muted); margin-top: 2px; }
 
-    /* ── Equipment list ── */
     .eq-list { padding: 0 20px; display: flex; flex-direction: column; gap: 12px; }
-
     .eq-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 16px;
-      cursor: pointer;
-      transition: transform .18s, border-color .18s;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px;
+      cursor: pointer; transition: transform .18s, border-color .18s;
       display: flex; align-items: center; gap: 14px;
     }
     .eq-card:active { transform: scale(.98); }
-
     .eq-icon {
       width: 52px; height: 52px; border-radius: 14px;
       display: flex; align-items: center; justify-content: center;
@@ -192,171 +288,173 @@
     .eq-icon.server  { background: rgba(255,159,67,.18); }
     .eq-icon.tablet  { background: rgba(168,156,255,.18); }
     .eq-icon.other   { background: rgba(138,143,168,.18); }
-
     .eq-info { flex: 1; min-width: 0; }
-    .eq-info .eq-name {
-      font-size: .93rem; font-weight: 700;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .eq-info .eq-model {
-      font-size: .77rem; color: var(--muted); margin-top: 2px;
-    }
-    .eq-info .eq-user {
-      font-size: .77rem; color: var(--muted); margin-top: 6px;
-      display: flex; align-items: center; gap: 4px;
-    }
-
+    .eq-info .eq-name  { font-size: .93rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .eq-info .eq-model { font-size: .77rem; color: var(--muted); margin-top: 2px; }
+    .eq-info .eq-user  { font-size: .77rem; color: var(--muted); margin-top: 6px; display: flex; align-items: center; gap: 4px; }
     .eq-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
     .status-badge {
       display: inline-flex; align-items: center; gap: 5px;
       border-radius: 20px; padding: 4px 10px;
       font-size: .7rem; font-weight: 600;
     }
-    .status-badge::before {
-      content: '';
-      width: 6px; height: 6px; border-radius: 50%;
-    }
-    .status-badge.active  { background: rgba(67,217,173,.15); color: var(--green); }
+    .status-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
+    .status-badge.active   { background: rgba(67,217,173,.15); color: var(--green); }
     .status-badge.active::before { background: var(--green); }
-    .status-badge.maint   { background: rgba(255,209,102,.15); color: var(--yellow); }
+    .status-badge.maint    { background: rgba(255,209,102,.15); color: var(--yellow); }
     .status-badge.maint::before { background: var(--yellow); }
-    .status-badge.inactive{ background: rgba(255,101,132,.15); color: var(--accent); }
+    .status-badge.inactive { background: rgba(255,101,132,.15); color: var(--accent); }
     .status-badge.inactive::before { background: var(--accent); }
-    .status-badge.transit { background: rgba(255,159,67,.15); color: var(--orange); }
+    .status-badge.transit  { background: rgba(255,159,67,.15); color: var(--orange); }
     .status-badge.transit::before { background: var(--orange); }
+    .eq-serial  { font-size: .68rem; color: var(--muted); }
+    .eq-chevron { color: var(--muted); font-size: 1.1rem; }
 
-    .eq-serial { font-size: .68rem; color: var(--muted); }
-    .eq-chevron { color: var(--muted); font-size: 1.1rem; margin-top: auto; }
+    .empty { text-align: center; padding: 48px 20px; display: none; }
+    .empty .icon { font-size: 3rem; margin-bottom: 12px; }
+    .empty p { color: var(--muted); font-size: .9rem; }
 
-    /* ── Modal / Detail view ── */
-    .modal-overlay {
-      display: none;
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,.7);
-      z-index: 200;
-      align-items: flex-end;
-      justify-content: center;
-    }
-    .modal-overlay.open { display: flex; }
-
-    .modal {
-      background: var(--surface);
-      border-radius: 28px 28px 0 0;
-      width: 100%; max-width: 430px;
-      padding: 0 0 calc(28px + var(--safe-bot));
-      max-height: 88dvh;
-      overflow-y: auto;
-      scrollbar-width: none;
-      animation: slideUp .28s ease;
-    }
-    .modal::-webkit-scrollbar { display: none; }
-
-    @keyframes slideUp {
-      from { transform: translateY(100%); }
-      to   { transform: translateY(0); }
-    }
-
-    .modal-handle {
-      width: 40px; height: 4px; border-radius: 4px;
-      background: var(--border);
-      margin: 12px auto 0;
-    }
-
-    .modal-hero {
+    /* ── Detail View ── */
+    .detail-view-content { padding: 0 20px; }
+    .detail-hero {
       display: flex; align-items: center; gap: 18px;
-      padding: 20px 24px 0;
+      padding: 0 0 20px;
     }
-    .modal-icon {
-      width: 64px; height: 64px; border-radius: 18px;
+    .detail-big-icon {
+      width: 72px; height: 72px; border-radius: 20px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 2rem; flex-shrink: 0;
+      font-size: 2.2rem; flex-shrink: 0;
     }
-    .modal-hero h2 { font-size: 1.15rem; font-weight: 800; }
-    .modal-hero p  { font-size: .82rem; color: var(--muted); margin-top: 3px; }
-
-    .modal-status { padding: 14px 24px 0; }
-
+    .detail-hero h2 { font-size: 1.2rem; font-weight: 800; }
+    .detail-hero p  { font-size: .82rem; color: var(--muted); margin-top: 3px; }
     .detail-grid {
       display: grid; grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      padding: 16px 24px 0;
+      gap: 10px; margin-bottom: 20px;
     }
     .detail-cell {
-      background: var(--surface2);
-      border-radius: 14px;
-      padding: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px; padding: 14px;
     }
     .detail-cell .lbl { font-size: .7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
     .detail-cell .val { font-size: .9rem; font-weight: 600; margin-top: 4px; }
 
-    .modal-actions {
-      display: flex; gap: 10px;
-      padding: 20px 24px 0;
-    }
+    .detail-actions { display: flex; gap: 10px; margin-bottom: 20px; }
     .btn-primary {
-      flex: 1;
-      background: var(--primary);
-      color: #fff; border: none; border-radius: 14px;
-      padding: 14px; font-size: .9rem; font-weight: 700;
-      cursor: pointer;
+      flex: 1; background: var(--primary); color: #fff;
+      border: none; border-radius: 14px; padding: 14px;
+      font-size: .9rem; font-weight: 700; cursor: pointer;
     }
     .btn-secondary {
-      flex: 1;
-      background: var(--surface2);
-      color: var(--text); border: 1px solid var(--border); border-radius: 14px;
-      padding: 14px; font-size: .9rem; font-weight: 600;
-      cursor: pointer;
+      flex: 1; background: var(--surface2); color: var(--text);
+      border: 1px solid var(--border); border-radius: 14px; padding: 14px;
+      font-size: .9rem; font-weight: 600; cursor: pointer;
     }
-
-    .modal-history { padding: 20px 24px 0; }
-    .modal-history h4 { font-size: .9rem; font-weight: 700; margin-bottom: 12px; }
-    .timeline { display: flex; flex-direction: column; gap: 0; }
+    .detail-history { margin-bottom: 20px; }
+    .detail-history h4 { font-size: .9rem; font-weight: 700; margin-bottom: 12px; }
+    .timeline { display: flex; flex-direction: column; }
     .tl-item { display: flex; gap: 12px; position: relative; padding-bottom: 16px; }
     .tl-item:last-child { padding-bottom: 0; }
     .tl-dot-col { display: flex; flex-direction: column; align-items: center; }
-    .tl-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--primary); flex-shrink: 0; margin-top: 3px; }
+    .tl-dot  { width: 10px; height: 10px; border-radius: 50%; background: var(--primary); flex-shrink: 0; margin-top: 3px; }
     .tl-line { width: 2px; flex: 1; background: var(--border); margin-top: 4px; }
     .tl-item:last-child .tl-line { display: none; }
-    .tl-content { flex: 1; min-width: 0; }
+    .tl-content { flex: 1; }
     .tl-content .event { font-size: .82rem; font-weight: 600; }
     .tl-content .date  { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+
+    /* ── Reports ── */
+    .report-section { padding: 0 20px 20px; }
+    .report-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px; margin-bottom: 12px;
+    }
+    .report-card h4 { font-size: .9rem; font-weight: 700; margin-bottom: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; font-size: .72rem; }
+    .bar-chart { display: flex; flex-direction: column; gap: 10px; }
+    .bar-row { display: flex; align-items: center; gap: 12px; }
+    .bar-label { font-size: .8rem; width: 80px; flex-shrink: 0; }
+    .bar-track { flex: 1; height: 8px; background: var(--surface2); border-radius: 10px; overflow: hidden; }
+    .bar-fill  { height: 100%; border-radius: 10px; transition: width .6s ease; }
+    .bar-val   { font-size: .78rem; font-weight: 700; width: 24px; text-align: right; flex-shrink: 0; }
+
+    .donut-wrap { display: flex; align-items: center; gap: 20px; }
+    .donut-svg  { flex-shrink: 0; }
+    .donut-legend { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; }
+    .legend-dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .legend-text { font-size: .8rem; }
+    .legend-val  { margin-left: auto; font-size: .8rem; font-weight: 700; }
+
+    .kpi-row { display: flex; gap: 12px; }
+    .kpi-card {
+      flex: 1; background: var(--surface2);
+      border-radius: 14px; padding: 14px; text-align: center;
+    }
+    .kpi-card .kv { font-size: 1.4rem; font-weight: 900; }
+    .kpi-card .kl { font-size: .7rem; color: var(--muted); margin-top: 4px; }
+
+    /* ── Profile ── */
+    .profile-header {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 20px 20px 24px; text-align: center;
+    }
+    .avatar {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem; margin-bottom: 14px;
+      border: 3px solid var(--surface2);
+    }
+    .profile-header h2 { font-size: 1.15rem; font-weight: 800; }
+    .profile-header p  { font-size: .82rem; color: var(--muted); margin-top: 4px; }
+    .profile-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(108,99,255,.2); border-radius: 20px;
+      padding: 6px 14px; font-size: .78rem; font-weight: 600;
+      color: var(--primary2); margin-top: 10px;
+    }
+    .menu-list { padding: 0 20px; }
+    .menu-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden; margin-bottom: 12px;
+    }
+    .menu-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px 18px; border-bottom: 1px solid var(--border);
+      cursor: pointer; transition: background .15s;
+    }
+    .menu-item:last-child { border-bottom: none; }
+    .menu-item:active { background: var(--surface2); }
+    .menu-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; flex-shrink: 0;
+    }
+    .menu-item .mi-label { flex: 1; font-size: .88rem; font-weight: 600; }
+    .menu-item .mi-val   { font-size: .8rem; color: var(--muted); margin-right: 8px; }
+    .menu-item .mi-arr   { color: var(--muted); font-size: 1.1rem; }
 
     /* ── Bottom Nav ── */
     .bottom-nav {
       position: fixed; bottom: 0; left: 50%;
       transform: translateX(-50%);
       width: 100%; max-width: 430px;
-      background: var(--surface);
-      border-top: 1px solid var(--border);
+      background: var(--surface); border-top: 1px solid var(--border);
       display: flex; justify-content: space-around; align-items: center;
       padding: 10px 20px calc(10px + var(--safe-bot));
       z-index: 100;
     }
     .nav-item {
-      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
       cursor: pointer; flex: 1;
     }
-    .nav-icon {
-      width: 26px; height: 26px;
-      display: flex; align-items: center; justify-content: center;
-    }
+    .nav-icon { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
     .nav-label { font-size: .67rem; font-weight: 500; color: var(--muted); }
     .nav-item.active .nav-label { color: var(--primary2); }
     .nav-item.active .nav-icon svg { stroke: var(--primary2); }
     .nav-item .nav-icon svg { stroke: var(--muted); }
-    .nav-dot {
-      width: 5px; height: 5px; border-radius: 50%;
-      background: var(--primary); margin: 0 auto; display: none;
-    }
+    .nav-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--primary); margin: 0 auto; display: none; }
     .nav-item.active .nav-dot { display: block; }
-
-    /* ── Empty state ── */
-    .empty {
-      text-align: center; padding: 48px 20px;
-      display: none;
-    }
-    .empty .icon { font-size: 3rem; margin-bottom: 12px; }
-    .empty p { color: var(--muted); font-size: .9rem; }
 
     /* ── FAB ── */
     .fab {
@@ -364,47 +462,22 @@
       bottom: calc(80px + var(--safe-bot));
       right: max(20px, calc(50% - 195px));
       width: 52px; height: 52px; border-radius: 50%;
-      background: var(--primary);
-      border: none;
+      background: var(--primary); border: none;
       display: flex; align-items: center; justify-content: center;
       cursor: pointer;
       box-shadow: 0 6px 24px rgba(108,99,255,.45);
-      z-index: 99;
-      transition: transform .18s;
+      z-index: 99; transition: transform .18s;
     }
     .fab:active { transform: scale(.93); }
-
-    /* ── Light theme ── */
-    [data-theme="light"] {
-      --bg:       #F2F3F7;
-      --surface:  #FFFFFF;
-      --surface2: #E8E9F0;
-      --text:     #1A1A2E;
-      --muted:    #6B7280;
-      --border:   rgba(0,0,0,.08);
-    }
-    html[data-theme="light"], body[data-theme="light"] { background: #E8E9F0; }
-    [data-theme="light"] .shell { box-shadow: 0 30px 80px rgba(0,0,0,.15); }
-
-    @media (min-width: 500px) {
-      .shell {
-        margin-top: 20px; margin-bottom: 20px;
-        min-height: calc(100dvh - 40px);
-        border-radius: 44px;
-        box-shadow: 0 30px 80px rgba(0,0,0,.7);
-        overflow: hidden;
-      }
-      .bottom-nav { border-radius: 0 0 44px 44px; }
-      .fab { right: max(20px, calc(50% - 195px)); }
-    }
+    .fab.hidden { display: none; }
   </style>
 </head>
 <body>
 <div class="shell">
 
-  <!-- Status bar -->
+  <!-- Status bar (shared) -->
   <div class="status-bar">
-    <span class="time">9:41</span>
+    <span class="time" id="clockTime">9:41</span>
     <div class="icons">
       <svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="6" width="3" height="6" rx="1"/><rect x="4.5" y="4" width="3" height="8" rx="1"/><rect x="9" y="2" width="3" height="10" rx="1"/><rect x="13.5" y="0" width="3" height="12" rx="1"/></svg>
       <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 9.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z"/><path d="M4.5 6.8A4.9 4.9 0 018 5.5c1.3 0 2.5.5 3.5 1.3" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M1.5 4A8 8 0 018 1.5 8 8 0 0114.5 4" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
@@ -412,111 +485,340 @@
     </div>
   </div>
 
-  <div class="scroll-area">
-
-    <!-- Top bar -->
+  <!-- ═══════════ VIEW: DASHBOARD ═══════════ -->
+  <div class="view active" id="view-dashboard">
     <div class="topbar">
       <div class="topbar-left">
-        <a href="index.html" class="back-btn" aria-label="Volver">
+        <a href="index.html" class="back-btn">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
         </a>
-        <h1>Inventario de Equipos</h1>
+        <h1>Inventario</h1>
       </div>
       <div class="topbar-right">
-        <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" aria-label="Cambiar tema">☀️</button>
+        <button class="icon-btn" onclick="toggleTheme()">☀️</button>
+        <button class="icon-btn" onclick="showNotif()">🔔</button>
       </div>
     </div>
+    <div class="scroll-area">
+      <!-- Hero card -->
+      <div class="dash-hero" style="margin:0 20px 20px;">
+        <div class="hero-label">Total de equipos</div>
+        <div class="hero-num" id="heroTotal">24</div>
+        <div class="hero-sub">Actualizado hoy · Verne Studios</div>
+        <div class="hero-row">
+          <div class="hero-stat">
+            <div class="sn" id="heroActive">18</div>
+            <div class="sl">Activos</div>
+          </div>
+          <div class="hero-stat">
+            <div class="sn" id="heroMaint">4</div>
+            <div class="sl">Mantenimiento</div>
+          </div>
+          <div class="hero-stat">
+            <div class="sn" id="heroInactive">2</div>
+            <div class="sl">Inactivos</div>
+          </div>
+        </div>
+      </div>
 
-    <!-- Stats strip -->
-    <div class="stats-strip">
-      <div class="stat-pill">
-        <div class="num purple" id="totalCount">24</div>
-        <div class="lbl">Total</div>
+      <!-- KPI grid -->
+      <div class="dash-grid">
+        <div class="dash-card" style="cursor:pointer" onclick="goToView('list','laptop')">
+          <div class="dc-icon">💻</div>
+          <div class="dc-num purple" id="cntLaptop">–</div>
+          <div class="dc-lbl">Laptops</div>
+        </div>
+        <div class="dash-card" style="cursor:pointer" onclick="goToView('list','monitor')">
+          <div class="dc-icon">🖥️</div>
+          <div class="dc-num green" id="cntMonitor">–</div>
+          <div class="dc-lbl">Monitores</div>
+        </div>
+        <div class="dash-card" style="cursor:pointer" onclick="goToView('list','phone')">
+          <div class="dc-icon">📱</div>
+          <div class="dc-num pink" id="cntPhone">–</div>
+          <div class="dc-lbl">Teléfonos</div>
+        </div>
+        <div class="dash-card" style="cursor:pointer" onclick="goToView('list','tablet')">
+          <div class="dc-icon">📟</div>
+          <div class="dc-num blue" id="cntTablet">–</div>
+          <div class="dc-lbl">Tablets</div>
+        </div>
+        <div class="dash-card" style="cursor:pointer" onclick="goToView('list','printer')">
+          <div class="dc-icon">🖨️</div>
+          <div class="dc-num yellow" id="cntPrinter">–</div>
+          <div class="dc-lbl">Impresoras</div>
+        </div>
+        <div class="dash-card" style="cursor:pointer" onclick="goToView('list','server')">
+          <div class="dc-icon">🗄️</div>
+          <div class="dc-num" style="color:var(--orange)" id="cntServer">–</div>
+          <div class="dc-lbl">Servidores</div>
+        </div>
       </div>
-      <div class="stat-pill">
-        <div class="num green" id="activeCount">18</div>
-        <div class="lbl">Activos</div>
+
+      <!-- Recent activity -->
+      <div class="sec-label">
+        <h3>Actividad reciente</h3>
+        <span class="see-all" onclick="goToView('list','all')">Ver todos →</span>
       </div>
-      <div class="stat-pill">
-        <div class="num yellow" id="maintCount">4</div>
-        <div class="lbl">Mantenimiento</div>
+      <div class="activity-list" id="recentActivity"></div>
+      <div style="height:20px;"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ VIEW: LIST ═══════════ -->
+  <div class="view" id="view-list">
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="back-btn" onclick="goToView('dashboard')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <h1>Equipos</h1>
       </div>
-      <div class="stat-pill">
-        <div class="num pink" id="inactiveCount">2</div>
-        <div class="lbl">Inactivos</div>
+      <div class="topbar-right">
+        <button class="icon-btn" onclick="toggleTheme()">☀️</button>
       </div>
     </div>
+    <div class="scroll-area">
+      <div class="stats-strip">
+        <div class="stat-pill"><div class="num purple" id="stTotal">24</div><div class="lbl">Total</div></div>
+        <div class="stat-pill"><div class="num green"  id="stActive">18</div><div class="lbl">Activos</div></div>
+        <div class="stat-pill"><div class="num yellow" id="stMaint">4</div><div class="lbl">Mantenimiento</div></div>
+        <div class="stat-pill"><div class="num pink"   id="stInactive">2</div><div class="lbl">Inactivos</div></div>
+      </div>
+      <div class="search-wrap">
+        <div class="search-box">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A8FA8" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="searchInput" placeholder="Buscar equipo, usuario, serial…" />
+        </div>
+      </div>
+      <div class="chips-scroll" id="catChips">
+        <div class="chip active" data-cat="all">Todos</div>
+        <div class="chip" data-cat="laptop">💻 Laptops</div>
+        <div class="chip" data-cat="monitor">🖥️ Monitores</div>
+        <div class="chip" data-cat="phone">📱 Teléfonos</div>
+        <div class="chip" data-cat="tablet">📟 Tablets</div>
+        <div class="chip" data-cat="printer">🖨️ Impresoras</div>
+        <div class="chip" data-cat="server">🗄️ Servidores</div>
+      </div>
+      <div class="sec-label">
+        <h3>Equipos registrados</h3>
+        <span id="listCount">24 equipos</span>
+      </div>
+      <div class="eq-list" id="eqList"></div>
+      <div class="empty" id="emptyState">
+        <div class="icon">🔍</div>
+        <p>No se encontraron equipos.</p>
+      </div>
+      <div style="height:20px;"></div>
+    </div>
+  </div>
 
-    <!-- Search -->
-    <div class="search-wrap">
-      <div class="search-box">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A8FA8" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="searchInput" placeholder="Buscar equipo, usuario, serial…" />
+  <!-- ═══════════ VIEW: DETAIL ═══════════ -->
+  <div class="view" id="view-detail">
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="back-btn" onclick="goBack()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <h1 id="detailTitle">Detalle</h1>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn" onclick="toggleTheme()">☀️</button>
       </div>
     </div>
-
-    <!-- Category chips -->
-    <div class="chips-scroll">
-      <div class="chip active" data-cat="all">Todos</div>
-      <div class="chip" data-cat="laptop">💻 Laptops</div>
-      <div class="chip" data-cat="monitor">🖥️ Monitores</div>
-      <div class="chip" data-cat="phone">📱 Teléfonos</div>
-      <div class="chip" data-cat="tablet">📟 Tablets</div>
-      <div class="chip" data-cat="printer">🖨️ Impresoras</div>
-      <div class="chip" data-cat="server">🗄️ Servidores</div>
+    <div class="scroll-area">
+      <div class="detail-view-content">
+        <div class="detail-hero">
+          <div class="detail-big-icon" id="detailIcon"></div>
+          <div>
+            <h2 id="detailName"></h2>
+            <p id="detailModel"></p>
+            <span class="status-badge" id="detailStatus" style="margin-top:6px;display:inline-flex;"></span>
+          </div>
+        </div>
+        <div class="detail-grid">
+          <div class="detail-cell"><div class="lbl">Serial</div><div class="val" id="dSerial"></div></div>
+          <div class="detail-cell"><div class="lbl">Categoría</div><div class="val" id="dCat"></div></div>
+          <div class="detail-cell"><div class="lbl">Asignado a</div><div class="val" id="dUser"></div></div>
+          <div class="detail-cell"><div class="lbl">Ubicación</div><div class="val" id="dLoc"></div></div>
+          <div class="detail-cell"><div class="lbl">Fecha compra</div><div class="val" id="dDate"></div></div>
+          <div class="detail-cell"><div class="lbl">Valor</div><div class="val" id="dVal"></div></div>
+        </div>
+        <div class="detail-actions">
+          <button class="btn-primary">✏️ Editar</button>
+          <button class="btn-secondary">📋 Reportar</button>
+        </div>
+        <div class="detail-history">
+          <h4>Historial</h4>
+          <div class="timeline" id="detailTimeline"></div>
+        </div>
+      </div>
+      <div style="height:20px;"></div>
     </div>
+  </div>
 
-    <!-- List -->
-    <div class="sec-label">
-      <h3>Equipos registrados</h3>
-      <span id="listCount">24 equipos</span>
+  <!-- ═══════════ VIEW: REPORTS ═══════════ -->
+  <div class="view" id="view-reports">
+    <div class="topbar">
+      <div class="topbar-left">
+        <h1>Reportes</h1>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn" onclick="toggleTheme()">☀️</button>
+      </div>
     </div>
+    <div class="scroll-area">
+      <div class="report-section">
 
-    <div class="eq-list" id="eqList"></div>
-    <div class="empty" id="emptyState">
-      <div class="icon">🔍</div>
-      <p>No se encontraron equipos con esos criterios.</p>
+        <!-- KPIs -->
+        <div class="kpi-row" style="margin-bottom:12px;">
+          <div class="kpi-card"><div class="kv green" id="rActive">–</div><div class="kl">Activos</div></div>
+          <div class="kpi-card"><div class="kv yellow" id="rMaint">–</div><div class="kl">Mantenimiento</div></div>
+          <div class="kpi-card"><div class="kv pink" id="rInactive">–</div><div class="kl">Inactivos</div></div>
+        </div>
+
+        <!-- Bar chart by category -->
+        <div class="report-card">
+          <h4>Equipos por categoría</h4>
+          <div class="bar-chart" id="catBarChart"></div>
+        </div>
+
+        <!-- Donut-style status -->
+        <div class="report-card">
+          <h4>Estado del inventario</h4>
+          <div class="donut-wrap">
+            <svg class="donut-svg" width="100" height="100" viewBox="0 0 36 36">
+              <circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--surface2)" stroke-width="3.8"/>
+              <circle id="donutActive" cx="18" cy="18" r="15.9" fill="none" stroke="var(--green)" stroke-width="3.8"
+                stroke-dasharray="75 25" stroke-dashoffset="25" stroke-linecap="round"/>
+              <circle id="donutMaint" cx="18" cy="18" r="15.9" fill="none" stroke="var(--yellow)" stroke-width="3.8"
+                stroke-dasharray="0 100" stroke-dashoffset="0" stroke-linecap="round" style="opacity:.9"/>
+              <circle id="donutInactive" cx="18" cy="18" r="15.9" fill="none" stroke="var(--accent)" stroke-width="3.8"
+                stroke-dasharray="0 100" stroke-dashoffset="0" stroke-linecap="round" style="opacity:.9"/>
+              <text x="18" y="20" text-anchor="middle" font-size="7" font-weight="700" fill="var(--text)" id="donutLabel">75%</text>
+            </svg>
+            <div class="donut-legend" id="donutLegend"></div>
+          </div>
+        </div>
+
+        <!-- Value summary -->
+        <div class="report-card">
+          <h4>Valor del inventario</h4>
+          <div class="kpi-row">
+            <div class="kpi-card"><div class="kv purple" id="rTotal">–</div><div class="kl">Total equipos</div></div>
+            <div class="kpi-card"><div class="kv" style="color:var(--green);font-size:1rem;" id="rValue">–</div><div class="kl">Valor total</div></div>
+          </div>
+        </div>
+
+      </div>
     </div>
+  </div>
 
-    <div style="height:20px;"></div>
-  </div><!-- /scroll-area -->
+  <!-- ═══════════ VIEW: PROFILE ═══════════ -->
+  <div class="view" id="view-profile">
+    <div class="topbar">
+      <div class="topbar-left">
+        <h1>Perfil</h1>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn" onclick="toggleTheme()">☀️</button>
+      </div>
+    </div>
+    <div class="scroll-area">
+      <div class="profile-header">
+        <div class="avatar">👤</div>
+        <h2>Administrador</h2>
+        <p>admin@vernestudios.com</p>
+        <div class="profile-badge">🛡️ Admin · Verne Studios</div>
+      </div>
+      <div class="menu-list">
+        <div class="menu-card">
+          <div class="menu-item">
+            <div class="menu-icon" style="background:rgba(108,99,255,.18);">📦</div>
+            <span class="mi-label">Total equipos</span>
+            <span class="mi-val" id="profTotal">24</span>
+            <span class="mi-arr">›</span>
+          </div>
+          <div class="menu-item">
+            <div class="menu-icon" style="background:rgba(67,217,173,.18);">✅</div>
+            <span class="mi-label">Equipos activos</span>
+            <span class="mi-val" id="profActive">18</span>
+            <span class="mi-arr">›</span>
+          </div>
+          <div class="menu-item">
+            <div class="menu-icon" style="background:rgba(255,209,102,.18);">🔧</div>
+            <span class="mi-label">En mantenimiento</span>
+            <span class="mi-val" id="profMaint">4</span>
+            <span class="mi-arr">›</span>
+          </div>
+        </div>
+        <div class="menu-card">
+          <div class="menu-item" onclick="toggleTheme()">
+            <div class="menu-icon" style="background:rgba(255,159,67,.18);">🎨</div>
+            <span class="mi-label">Tema</span>
+            <span class="mi-val" id="profTheme">Oscuro</span>
+            <span class="mi-arr">›</span>
+          </div>
+          <div class="menu-item">
+            <div class="menu-icon" style="background:rgba(255,101,132,.18);">🔔</div>
+            <span class="mi-label">Notificaciones</span>
+            <span class="mi-val">Activadas</span>
+            <span class="mi-arr">›</span>
+          </div>
+          <div class="menu-item">
+            <div class="menu-icon" style="background:rgba(168,156,255,.18);">📤</div>
+            <span class="mi-label">Exportar inventario</span>
+            <span class="mi-val">CSV</span>
+            <span class="mi-arr">›</span>
+          </div>
+        </div>
+        <div class="menu-card">
+          <div class="menu-item">
+            <div class="menu-icon" style="background:rgba(138,143,168,.15);">ℹ️</div>
+            <span class="mi-label">Versión</span>
+            <span class="mi-val">1.0.0</span>
+            <span class="mi-arr"></span>
+          </div>
+          <div class="menu-item" onclick="window.location.href='index.html'">
+            <div class="menu-icon" style="background:rgba(255,101,132,.12);">🚪</div>
+            <span class="mi-label">Volver al inicio</span>
+            <span class="mi-arr">›</span>
+          </div>
+        </div>
+      </div>
+      <div style="height:20px;"></div>
+    </div>
+  </div>
 
   <!-- FAB -->
-  <button class="fab" title="Agregar equipo">
+  <button class="fab" id="fabBtn" title="Agregar equipo" onclick="showAddEquip()">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
   </button>
 
   <!-- Bottom nav -->
   <nav class="bottom-nav">
-    <a href="index.html" class="nav-item" style="text-decoration:none;">
+    <div class="nav-item active" id="nav-dashboard" onclick="goToView('dashboard')">
       <div class="nav-icon">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
       </div>
       <div class="nav-dot"></div>
       <span class="nav-label">Inicio</span>
-    </a>
-    <div class="nav-item active">
+    </div>
+    <div class="nav-item" id="nav-list" onclick="goToView('list','all')">
       <div class="nav-icon">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
       </div>
       <div class="nav-dot"></div>
-      <span class="nav-label">Inventario</span>
+      <span class="nav-label">Equipos</span>
     </div>
-    <div class="nav-item">
+    <div class="nav-item" id="nav-reports" onclick="goToView('reports')">
       <div class="nav-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
       </div>
       <div class="nav-dot"></div>
       <span class="nav-label">Reportes</span>
     </div>
-    <div class="nav-item">
-      <div class="nav-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-      </div>
-      <div class="nav-dot"></div>
-      <span class="nav-label">Estadísticas</span>
-    </div>
-    <div class="nav-item">
+    <div class="nav-item" id="nav-profile" onclick="goToView('profile')">
       <div class="nav-icon">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
       </div>
@@ -524,189 +826,131 @@
       <span class="nav-label">Perfil</span>
     </div>
   </nav>
-</div>
 
-<!-- Detail Modal -->
-<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
-  <div class="modal" id="modalContent">
-    <div class="modal-handle"></div>
-    <div class="modal-hero">
-      <div class="modal-icon" id="mIcon"></div>
-      <div>
-        <h2 id="mName"></h2>
-        <p id="mModel"></p>
-      </div>
-    </div>
-    <div class="modal-status">
-      <span class="status-badge" id="mStatus"></span>
-    </div>
-    <div class="detail-grid">
-      <div class="detail-cell"><div class="lbl">Serial</div><div class="val" id="mSerial"></div></div>
-      <div class="detail-cell"><div class="lbl">Categoría</div><div class="val" id="mCat"></div></div>
-      <div class="detail-cell"><div class="lbl">Asignado a</div><div class="val" id="mUser"></div></div>
-      <div class="detail-cell"><div class="lbl">Ubicación</div><div class="val" id="mLoc"></div></div>
-      <div class="detail-cell"><div class="lbl">Compra</div><div class="val" id="mDate"></div></div>
-      <div class="detail-cell"><div class="lbl">Valor</div><div class="val" id="mVal"></div></div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn-primary">✏️ Editar</button>
-      <button class="btn-secondary">📋 Historial</button>
-    </div>
-    <div class="modal-history">
-      <h4>Historial reciente</h4>
-      <div class="timeline" id="mTimeline"></div>
-    </div>
-  </div>
-</div>
+</div><!-- /.shell -->
 
 <script>
-// ── Data ────────────────────────────────────────────────────────────────────
+// ── Data ─────────────────────────────────────────────────────────────────────
 const equipment = [
-  {
-    id: 1, name: 'MacBook Pro 16"', model: 'Apple MNW93LL/A', cat: 'laptop', emoji: '💻',
-    serial: 'C02XG3LVJG5H', user: 'Ana García', location: 'Oficina Principal',
-    status: 'active', date: '2023-03-14', value: '$2,499',
-    history: [
-      { event: 'Asignado a Ana García', date: 'Mar 14, 2023' },
-      { event: 'Actualización macOS 14', date: 'Oct 2, 2023' },
-      { event: 'Revisión anual completada', date: 'Mar 10, 2024' },
-    ]
-  },
-  {
-    id: 2, name: 'Dell XPS 15', model: 'Dell XPS-9530', cat: 'laptop', emoji: '💻',
-    serial: 'DXP5RK24001', user: 'Carlos Méndez', location: 'Sala de Diseño',
-    status: 'active', date: '2022-11-08', value: '$1,799',
-    history: [
-      { event: 'Ingreso al inventario', date: 'Nov 8, 2022' },
-      { event: 'Asignado a Carlos Méndez', date: 'Nov 10, 2022' },
-      { event: 'Cambio de batería', date: 'Jun 3, 2024' },
-    ]
-  },
-  {
-    id: 3, name: 'LG UltraWide 34"', model: 'LG 34WN80C-B', cat: 'monitor', emoji: '🖥️',
-    serial: 'LG34W-0091283', user: 'Ana García', location: 'Oficina Principal',
-    status: 'active', date: '2023-01-20', value: '$649',
-    history: [
-      { event: 'Ingreso al inventario', date: 'Ene 20, 2023' },
-      { event: 'Asignado a Ana García', date: 'Ene 22, 2023' },
-    ]
-  },
-  {
-    id: 4, name: 'iPhone 15 Pro', model: 'Apple A3292', cat: 'phone', emoji: '📱',
-    serial: 'F4GT9Z3NP7VN', user: 'Laura Soto', location: 'Remoto',
-    status: 'active', date: '2023-09-22', value: '$1,099',
-    history: [
-      { event: 'Ingreso al inventario', date: 'Sep 22, 2023' },
-      { event: 'Asignado a Laura Soto', date: 'Sep 25, 2023' },
-    ]
-  },
-  {
-    id: 5, name: 'HP LaserJet Pro', model: 'HP M428fdw', cat: 'printer', emoji: '🖨️',
-    serial: 'CNCF3B2K0X', user: 'Compartido', location: 'Sala de Impresión',
-    status: 'maint', date: '2021-05-17', value: '$449',
-    history: [
-      { event: 'Ingreso al inventario', date: 'May 17, 2021' },
-      { event: 'Mantenimiento preventivo', date: 'Dic 4, 2022' },
-      { event: 'En mantenimiento – cabezal', date: 'Feb 28, 2024' },
-    ]
-  },
-  {
-    id: 6, name: 'iPad Pro 12.9"', model: 'Apple MNXR3LL/A', cat: 'tablet', emoji: '📟',
-    serial: 'DMQR4C19NF4T', user: 'Miguel Torres', location: 'Sala de Reuniones',
-    status: 'active', date: '2022-06-10', value: '$1,299',
-    history: [
-      { event: 'Ingreso al inventario', date: 'Jun 10, 2022' },
-      { event: 'Asignado a Miguel Torres', date: 'Jun 15, 2022' },
-      { event: 'Actualización iPadOS 17', date: 'Sep 19, 2023' },
-    ]
-  },
-  {
-    id: 7, name: 'Dell PowerEdge R750', model: 'Dell R750-16G', cat: 'server', emoji: '🗄️',
-    serial: 'SVR-DELL-2024-01', user: 'IT – Infraestructura', location: 'Data Center',
-    status: 'active', date: '2024-01-05', value: '$8,200',
-    history: [
-      { event: 'Instalación en rack', date: 'Ene 5, 2024' },
-      { event: 'Configuración RAID', date: 'Ene 7, 2024' },
-      { event: 'Producción activa', date: 'Ene 10, 2024' },
-    ]
-  },
-  {
-    id: 8, name: 'ThinkPad X1 Carbon', model: 'Lenovo 21HM', cat: 'laptop', emoji: '💻',
-    serial: 'LNV-X1C-2023-04', user: 'Pedro Ruiz', location: 'Oficina Norte',
-    status: 'maint', date: '2023-04-02', value: '$1,649',
-    history: [
-      { event: 'Ingreso al inventario', date: 'Abr 2, 2023' },
-      { event: 'Asignado a Pedro Ruiz', date: 'Abr 5, 2023' },
-      { event: 'Pantalla dañada – en reparación', date: 'Mar 1, 2026' },
-    ]
-  },
-  {
-    id: 9, name: 'Samsung Galaxy S24', model: 'Samsung SM-S928U', cat: 'phone', emoji: '📱',
-    serial: 'SG-S24-0097441', user: 'Sin asignar', location: 'Almacén',
-    status: 'inactive', date: '2024-02-14', value: '$999',
-    history: [
-      { event: 'Ingreso al inventario', date: 'Feb 14, 2024' },
-      { event: 'Desactivado – sin asignar', date: 'Nov 20, 2024' },
-    ]
-  },
-  {
-    id: 10, name: 'BenQ PD2725U 27"', model: 'BenQ PD2725U', cat: 'monitor', emoji: '🖥️',
-    serial: 'BQ27PD-551002', user: 'Laura Soto', location: 'Remoto',
-    status: 'active', date: '2023-07-11', value: '$699',
-    history: [
-      { event: 'Ingreso al inventario', date: 'Jul 11, 2023' },
-      { event: 'Enviado a trabajo remoto', date: 'Jul 15, 2023' },
-    ]
-  },
-  {
-    id: 11, name: 'Surface Pro 9', model: 'Microsoft QIL-00001', cat: 'tablet', emoji: '📟',
-    serial: 'MS-SP9-4422XZ', user: 'Andrea López', location: 'Oficina Principal',
-    status: 'active', date: '2023-02-28', value: '$1,599',
-    history: [
-      { event: 'Ingreso al inventario', date: 'Feb 28, 2023' },
-      { event: 'Asignado a Andrea López', date: 'Mar 2, 2023' },
-    ]
-  },
-  {
-    id: 12, name: 'Epson EcoTank L5590', model: 'Epson L5590', cat: 'printer', emoji: '🖨️',
-    serial: 'EP-L55-2022-007', user: 'Compartido', location: 'Piso 2',
-    status: 'maint', date: '2022-08-30', value: '$329',
-    history: [
-      { event: 'Ingreso al inventario', date: 'Ago 30, 2022' },
-      { event: 'Recarga de tinta', date: 'Ene 10, 2024' },
-      { event: 'En mantenimiento – rodillos', date: 'Mar 3, 2026' },
-    ]
-  },
-  {
-    id: 13, name: 'HP ProDesk 600 G9', model: 'HP 81R74AV', cat: 'laptop', emoji: '💻',
-    serial: 'HP-PD6-9001ZA', user: 'Sin asignar', location: 'Almacén',
-    status: 'inactive', date: '2022-01-15', value: '$879',
-    history: [
-      { event: 'Ingreso al inventario', date: 'Ene 15, 2022' },
-      { event: 'Devuelto por empleado', date: 'Jun 30, 2023' },
-      { event: 'Marcado inactivo', date: 'Jul 1, 2023' },
-    ]
-  },
-  {
-    id: 14, name: 'Cisco Catalyst 9200', model: 'Cisco C9200-24P', cat: 'server', emoji: '🗄️',
-    serial: 'CSC-C92-0054321', user: 'IT – Redes', location: 'Data Center',
-    status: 'active', date: '2023-10-03', value: '$4,350',
-    history: [
-      { event: 'Instalación en rack principal', date: 'Oct 3, 2023' },
-      { event: 'Configuración VLANs', date: 'Oct 5, 2023' },
-    ]
-  },
+  { id:1,  name:'MacBook Pro 16"',      model:'Apple MNW93LL/A',       cat:'laptop',  emoji:'💻', serial:'C02XG3LVJG5H',    user:'Ana García',          location:'Oficina Principal', status:'active',   date:'2023-03-14', value:2499,
+    history:[{event:'Asignado a Ana García',date:'Mar 14, 2023'},{event:'Actualización macOS 14',date:'Oct 2, 2023'},{event:'Revisión anual',date:'Mar 10, 2024'}] },
+  { id:2,  name:'Dell XPS 15',          model:'Dell XPS-9530',          cat:'laptop',  emoji:'💻', serial:'DXP5RK24001',      user:'Carlos Méndez',        location:'Sala de Diseño',    status:'active',   date:'2022-11-08', value:1799,
+    history:[{event:'Ingreso al inventario',date:'Nov 8, 2022'},{event:'Asignado a Carlos Méndez',date:'Nov 10, 2022'},{event:'Cambio de batería',date:'Jun 3, 2024'}] },
+  { id:3,  name:'LG UltraWide 34"',     model:'LG 34WN80C-B',           cat:'monitor', emoji:'🖥️', serial:'LG34W-0091283',    user:'Ana García',          location:'Oficina Principal', status:'active',   date:'2023-01-20', value:649,
+    history:[{event:'Ingreso al inventario',date:'Ene 20, 2023'},{event:'Asignado a Ana García',date:'Ene 22, 2023'}] },
+  { id:4,  name:'iPhone 15 Pro',        model:'Apple A3292',            cat:'phone',   emoji:'📱', serial:'F4GT9Z3NP7VN',    user:'Laura Soto',           location:'Remoto',            status:'active',   date:'2023-09-22', value:1099,
+    history:[{event:'Ingreso al inventario',date:'Sep 22, 2023'},{event:'Asignado a Laura Soto',date:'Sep 25, 2023'}] },
+  { id:5,  name:'HP LaserJet Pro',      model:'HP M428fdw',             cat:'printer', emoji:'🖨️', serial:'CNCF3B2K0X',      user:'Compartido',           location:'Sala de Impresión', status:'maint',    date:'2021-05-17', value:449,
+    history:[{event:'Ingreso al inventario',date:'May 17, 2021'},{event:'Mantenimiento preventivo',date:'Dic 4, 2022'},{event:'En mantenimiento – cabezal',date:'Feb 28, 2024'}] },
+  { id:6,  name:'iPad Pro 12.9"',       model:'Apple MNXR3LL/A',        cat:'tablet',  emoji:'📟', serial:'DMQR4C19NF4T',    user:'Miguel Torres',        location:'Sala de Reuniones', status:'active',   date:'2022-06-10', value:1299,
+    history:[{event:'Ingreso al inventario',date:'Jun 10, 2022'},{event:'Asignado a Miguel Torres',date:'Jun 15, 2022'},{event:'Actualización iPadOS 17',date:'Sep 19, 2023'}] },
+  { id:7,  name:'Dell PowerEdge R750',  model:'Dell R750-16G',           cat:'server',  emoji:'🗄️', serial:'SVR-DELL-2024-01', user:'IT – Infraestructura', location:'Data Center',       status:'active',   date:'2024-01-05', value:8200,
+    history:[{event:'Instalación en rack',date:'Ene 5, 2024'},{event:'Configuración RAID',date:'Ene 7, 2024'},{event:'Producción activa',date:'Ene 10, 2024'}] },
+  { id:8,  name:'ThinkPad X1 Carbon',   model:'Lenovo 21HM',             cat:'laptop',  emoji:'💻', serial:'LNV-X1C-2023-04',  user:'Pedro Ruiz',           location:'Oficina Norte',     status:'maint',    date:'2023-04-02', value:1649,
+    history:[{event:'Ingreso al inventario',date:'Abr 2, 2023'},{event:'Asignado a Pedro Ruiz',date:'Abr 5, 2023'},{event:'Pantalla dañada – en reparación',date:'Mar 1, 2026'}] },
+  { id:9,  name:'Samsung Galaxy S24',   model:'Samsung SM-S928U',        cat:'phone',   emoji:'📱', serial:'SG-S24-0097441',   user:'Sin asignar',          location:'Almacén',           status:'inactive', date:'2024-02-14', value:999,
+    history:[{event:'Ingreso al inventario',date:'Feb 14, 2024'},{event:'Desactivado – sin asignar',date:'Nov 20, 2024'}] },
+  { id:10, name:'BenQ PD2725U 27"',     model:'BenQ PD2725U',            cat:'monitor', emoji:'🖥️', serial:'BQ27PD-551002',    user:'Laura Soto',           location:'Remoto',            status:'active',   date:'2023-07-11', value:699,
+    history:[{event:'Ingreso al inventario',date:'Jul 11, 2023'},{event:'Enviado a trabajo remoto',date:'Jul 15, 2023'}] },
+  { id:11, name:'Surface Pro 9',        model:'Microsoft QIL-00001',     cat:'tablet',  emoji:'📟', serial:'MS-SP9-4422XZ',    user:'Andrea López',         location:'Oficina Principal', status:'active',   date:'2023-02-28', value:1599,
+    history:[{event:'Ingreso al inventario',date:'Feb 28, 2023'},{event:'Asignado a Andrea López',date:'Mar 2, 2023'}] },
+  { id:12, name:'Epson EcoTank L5590',  model:'Epson L5590',             cat:'printer', emoji:'🖨️', serial:'EP-L55-2022-007',  user:'Compartido',           location:'Piso 2',            status:'maint',    date:'2022-08-30', value:329,
+    history:[{event:'Ingreso al inventario',date:'Ago 30, 2022'},{event:'Recarga de tinta',date:'Ene 10, 2024'},{event:'En mantenimiento – rodillos',date:'Mar 3, 2026'}] },
+  { id:13, name:'HP ProDesk 600 G9',    model:'HP 81R74AV',              cat:'laptop',  emoji:'💻', serial:'HP-PD6-9001ZA',    user:'Sin asignar',          location:'Almacén',           status:'inactive', date:'2022-01-15', value:879,
+    history:[{event:'Ingreso al inventario',date:'Ene 15, 2022'},{event:'Devuelto por empleado',date:'Jun 30, 2023'},{event:'Marcado inactivo',date:'Jul 1, 2023'}] },
+  { id:14, name:'Cisco Catalyst 9200',  model:'Cisco C9200-24P',         cat:'server',  emoji:'🗄️', serial:'CSC-C92-0054321',  user:'IT – Redes',           location:'Data Center',       status:'active',   date:'2023-10-03', value:4350,
+    history:[{event:'Instalación en rack principal',date:'Oct 3, 2023'},{event:'Configuración VLANs',date:'Oct 5, 2023'}] },
+  { id:15, name:'MacBook Air M2',        model:'Apple MLXY3LL/A',         cat:'laptop',  emoji:'💻', serial:'C02ZT4XNMD6W',    user:'Sofía Ramírez',        location:'Sala de Diseño',    status:'active',   date:'2022-09-16', value:1299,
+    history:[{event:'Ingreso al inventario',date:'Sep 16, 2022'},{event:'Asignado a Sofía Ramírez',date:'Sep 20, 2022'}] },
+  { id:16, name:'Samsung QN85B 32"',    model:'Samsung QN32Q60BAFXZA',   cat:'monitor', emoji:'🖥️', serial:'SQN32-00118',      user:'Sala de Reuniones',   location:'Sala Conf. A',      status:'active',   date:'2022-11-30', value:479,
+    history:[{event:'Ingreso al inventario',date:'Nov 30, 2022'},{event:'Instalado en Sala Conf. A',date:'Dic 5, 2022'}] },
+  { id:17, name:'Google Pixel 8 Pro',   model:'Google GP4BC',            cat:'phone',   emoji:'📱', serial:'GXL-PIX-884432',   user:'Diego Fernández',      location:'Oficina Norte',     status:'active',   date:'2023-10-12', value:999,
+    history:[{event:'Ingreso al inventario',date:'Oct 12, 2023'},{event:'Asignado a Diego Fernández',date:'Oct 15, 2023'}] },
+  { id:18, name:'Synology NAS DS923+',  model:'Synology DS923+',         cat:'server',  emoji:'🗄️', serial:'SYN-DS923-00542',  user:'IT – Backup',          location:'Data Center',       status:'active',   date:'2023-05-22', value:599,
+    history:[{event:'Ingreso al inventario',date:'May 22, 2023'},{event:'Configuración RAID 5',date:'May 25, 2023'}] },
+  { id:19, name:'Logitech MX Keys',     model:'Logitech 920-009295',     cat:'other',   emoji:'⌨️', serial:'LGT-MXK-7741',     user:'Carlos Méndez',        location:'Sala de Diseño',    status:'active',   date:'2023-08-01', value:99,
+    history:[{event:'Ingreso al inventario',date:'Ago 1, 2023'},{event:'Asignado a Carlos Méndez',date:'Ago 3, 2023'}] },
+  { id:20, name:'Wacom Cintiq 22',      model:'Wacom DTK-2260K0A',       cat:'other',   emoji:'🖊️', serial:'WCM-CQ22-0033',    user:'Sofía Ramírez',        location:'Sala de Diseño',    status:'maint',    date:'2021-11-10', value:899,
+    history:[{event:'Ingreso al inventario',date:'Nov 10, 2021'},{event:'Asignado a Sofía Ramírez',date:'Nov 15, 2021'},{event:'Calibración necesaria',date:'Feb 15, 2026'}] },
 ];
 
-// ── State ──────────────────────────────────────────────────────────────────
-let filterCat = 'all';
+// ── State ─────────────────────────────────────────────────────────────────────
+let currentView = 'dashboard';
+let prevView    = null;
+let filterCat   = 'all';
 let filterSearch = '';
-let selectedItem = null;
+let selectedId  = null;
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-const catLabel = { laptop:'Laptop', monitor:'Monitor', phone:'Teléfono', tablet:'Tablet', printer:'Impresora', server:'Servidor', other:'Otro' };
-const catIconClass = { laptop:'laptop', monitor:'monitor', phone:'phone', tablet:'tablet', printer:'printer', server:'server' };
-const statusLabel = { active:'Activo', maint:'Mantenimiento', inactive:'Inactivo', transit:'En tránsito' };
+const catLabel   = { laptop:'Laptop', monitor:'Monitor', phone:'Teléfono', tablet:'Tablet', printer:'Impresora', server:'Servidor', other:'Otro' };
+const catIconCls = { laptop:'laptop', monitor:'monitor', phone:'phone', tablet:'tablet', printer:'printer', server:'server', other:'other' };
+const statusLbl  = { active:'Activo', maint:'Mantenimiento', inactive:'Inactivo', transit:'En tránsito' };
+
+// ── Navigation ─────────────────────────────────────────────────────────────────
+function goToView(name, cat) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const navEl = document.getElementById('nav-' + name);
+  if (navEl) navEl.classList.add('active');
+
+  const fab = document.getElementById('fabBtn');
+  fab.classList.toggle('hidden', name === 'detail' || name === 'reports' || name === 'profile');
+
+  if (name === 'list') {
+    if (cat) setFilter(cat);
+    renderList();
+  }
+  if (name === 'reports')   renderReports();
+  if (name === 'profile')   renderProfile();
+  if (name === 'dashboard') renderDashboard();
+
+  prevView = currentView;
+  currentView = name;
+}
+
+function goBack() {
+  goToView(prevView || 'list');
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+function renderDashboard() {
+  const total    = equipment.length;
+  const active   = equipment.filter(e=>e.status==='active').length;
+  const maint    = equipment.filter(e=>e.status==='maint').length;
+  const inactive = equipment.filter(e=>e.status==='inactive').length;
+
+  document.getElementById('heroTotal').textContent   = total;
+  document.getElementById('heroActive').textContent  = active;
+  document.getElementById('heroMaint').textContent   = maint;
+  document.getElementById('heroInactive').textContent = inactive;
+
+  ['laptop','monitor','phone','tablet','printer','server'].forEach(c => {
+    const el = document.getElementById('cnt' + c.charAt(0).toUpperCase() + c.slice(1));
+    if (el) el.textContent = equipment.filter(e=>e.cat===c).length;
+  });
+
+  // Recent activity (last 5 items by id desc)
+  const recent = [...equipment].sort((a,b)=>b.id-a.id).slice(0,5);
+  document.getElementById('recentActivity').innerHTML = recent.map(eq => `
+    <div class="activity-item" onclick="openDetail(${eq.id})" style="cursor:pointer">
+      <div class="activity-icon eq-icon ${catIconCls[eq.cat]||'other'}">${eq.emoji}</div>
+      <div class="activity-info">
+        <div class="ai-title">${eq.name}</div>
+        <div class="ai-sub">${eq.user} · ${eq.location}</div>
+      </div>
+      <span class="status-badge ${eq.status}">${statusLbl[eq.status]}</span>
+    </div>
+  `).join('');
+}
+
+// ── List ─────────────────────────────────────────────────────────────────────
+function setFilter(cat) {
+  filterCat = cat;
+  document.querySelectorAll('.chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.cat === cat);
+  });
+}
 
 function filtered() {
   return equipment.filter(eq => {
@@ -722,17 +966,22 @@ function filtered() {
 
 function renderList() {
   const list = filtered();
-  const el = document.getElementById('eqList');
+  const el   = document.getElementById('eqList');
   const empty = document.getElementById('emptyState');
-  const cnt = document.getElementById('listCount');
+  const cnt  = document.getElementById('listCount');
   cnt.textContent = list.length + ' equipo' + (list.length !== 1 ? 's' : '');
+
+  document.getElementById('stTotal').textContent    = equipment.length;
+  document.getElementById('stActive').textContent   = equipment.filter(e=>e.status==='active').length;
+  document.getElementById('stMaint').textContent    = equipment.filter(e=>e.status==='maint').length;
+  document.getElementById('stInactive').textContent = equipment.filter(e=>e.status==='inactive').length;
 
   if (!list.length) { el.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
 
   el.innerHTML = list.map(eq => `
-    <div class="eq-card" onclick="openModal(${eq.id})">
-      <div class="eq-icon ${catIconClass[eq.cat] || 'other'}">${eq.emoji}</div>
+    <div class="eq-card" onclick="openDetail(${eq.id})">
+      <div class="eq-icon ${catIconCls[eq.cat]||'other'}">${eq.emoji}</div>
       <div class="eq-info">
         <div class="eq-name">${eq.name}</div>
         <div class="eq-model">${eq.model}</div>
@@ -742,7 +991,7 @@ function renderList() {
         </div>
       </div>
       <div class="eq-right">
-        <span class="status-badge ${eq.status}">${statusLabel[eq.status]}</span>
+        <span class="status-badge ${eq.status}">${statusLbl[eq.status]}</span>
         <span class="eq-serial">${eq.serial}</span>
         <span class="eq-chevron">›</span>
       </div>
@@ -750,37 +999,31 @@ function renderList() {
   `).join('');
 }
 
-function updateStats() {
-  const all = equipment;
-  document.getElementById('totalCount').textContent    = all.length;
-  document.getElementById('activeCount').textContent   = all.filter(e=>e.status==='active').length;
-  document.getElementById('maintCount').textContent    = all.filter(e=>e.status==='maint').length;
-  document.getElementById('inactiveCount').textContent = all.filter(e=>e.status==='inactive').length;
-}
-
-// ── Modal ──────────────────────────────────────────────────────────────────
-function openModal(id) {
-  const eq = equipment.find(e => e.id === id);
+// ── Detail ─────────────────────────────────────────────────────────────────────
+function openDetail(id) {
+  const eq = equipment.find(e=>e.id===id);
   if (!eq) return;
-  selectedItem = eq;
+  selectedId = id;
+  prevView = currentView;
 
-  document.getElementById('mIcon').className = `modal-icon ${catIconClass[eq.cat]||'other'}`;
-  document.getElementById('mIcon').textContent = eq.emoji;
-  document.getElementById('mName').textContent = eq.name;
-  document.getElementById('mModel').textContent = eq.model;
+  document.getElementById('detailTitle').textContent = eq.name;
+  document.getElementById('detailIcon').className = `detail-big-icon eq-icon ${catIconCls[eq.cat]||'other'}`;
+  document.getElementById('detailIcon').textContent = eq.emoji;
+  document.getElementById('detailName').textContent = eq.name;
+  document.getElementById('detailModel').textContent = eq.model;
 
-  const badge = document.getElementById('mStatus');
+  const badge = document.getElementById('detailStatus');
   badge.className = `status-badge ${eq.status}`;
-  badge.textContent = statusLabel[eq.status];
+  badge.textContent = statusLbl[eq.status];
 
-  document.getElementById('mSerial').textContent = eq.serial;
-  document.getElementById('mCat').textContent    = catLabel[eq.cat] || 'Otro';
-  document.getElementById('mUser').textContent   = eq.user;
-  document.getElementById('mLoc').textContent    = eq.location;
-  document.getElementById('mDate').textContent   = eq.date;
-  document.getElementById('mVal').textContent    = eq.value;
+  document.getElementById('dSerial').textContent = eq.serial;
+  document.getElementById('dCat').textContent    = catLabel[eq.cat] || 'Otro';
+  document.getElementById('dUser').textContent   = eq.user;
+  document.getElementById('dLoc').textContent    = eq.location;
+  document.getElementById('dDate').textContent   = eq.date;
+  document.getElementById('dVal').textContent    = '$' + eq.value.toLocaleString();
 
-  document.getElementById('mTimeline').innerHTML = eq.history.map((h, i) => `
+  document.getElementById('detailTimeline').innerHTML = eq.history.map((h,i) => `
     <div class="tl-item">
       <div class="tl-dot-col">
         <div class="tl-dot" style="background:${i===0?'var(--primary)':'var(--muted)'}"></div>
@@ -793,54 +1036,161 @@ function openModal(id) {
     </div>
   `).join('');
 
-  document.getElementById('modalOverlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-detail').classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('fabBtn').classList.add('hidden');
+  currentView = 'detail';
 }
 
-function closeModal(e) {
-  if (e && e.target !== document.getElementById('modalOverlay')) return;
-  document.getElementById('modalOverlay').classList.remove('open');
-  document.body.style.overflow = '';
+// ── Reports ─────────────────────────────────────────────────────────────────────
+function renderReports() {
+  const total    = equipment.length;
+  const active   = equipment.filter(e=>e.status==='active').length;
+  const maint    = equipment.filter(e=>e.status==='maint').length;
+  const inactive = equipment.filter(e=>e.status==='inactive').length;
+
+  document.getElementById('rActive').textContent   = active;
+  document.getElementById('rMaint').textContent    = maint;
+  document.getElementById('rInactive').textContent = inactive;
+  document.getElementById('rTotal').textContent    = total;
+
+  const totalVal = equipment.reduce((s,e)=>s+e.value,0);
+  document.getElementById('rValue').textContent = '$' + totalVal.toLocaleString();
+
+  // Bar chart
+  const cats = [
+    { key:'laptop',  label:'Laptops',     color:'var(--primary2)' },
+    { key:'monitor', label:'Monitores',   color:'var(--green)' },
+    { key:'phone',   label:'Teléfonos',   color:'var(--accent)' },
+    { key:'tablet',  label:'Tablets',     color:'var(--blue)' },
+    { key:'printer', label:'Impresoras',  color:'var(--yellow)' },
+    { key:'server',  label:'Servidores',  color:'var(--orange)' },
+    { key:'other',   label:'Otros',       color:'var(--muted)' },
+  ];
+  const max = Math.max(...cats.map(c=>equipment.filter(e=>e.cat===c.key).length), 1);
+  document.getElementById('catBarChart').innerHTML = cats.map(c => {
+    const cnt = equipment.filter(e=>e.cat===c.key).length;
+    if (!cnt) return '';
+    const pct = Math.round(cnt/max*100);
+    return `<div class="bar-row">
+      <span class="bar-label">${c.label}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${c.color};"></div></div>
+      <span class="bar-val">${cnt}</span>
+    </div>`;
+  }).join('');
+
+  // Donut
+  const circumference = 2 * Math.PI * 15.9;
+  const aPct = active / total;
+  const mPct = maint  / total;
+  const iPct = inactive / total;
+
+  function setDonut(id, pct, offset) {
+    const el = document.getElementById(id);
+    const filled = circumference * pct;
+    const empty  = circumference - filled;
+    el.setAttribute('stroke-dasharray', `${filled.toFixed(1)} ${empty.toFixed(1)}`);
+    el.setAttribute('stroke-dashoffset', offset.toFixed(1));
+  }
+
+  const startA = circumference * 0.25; // start at top
+  setDonut('donutActive',   aPct, startA);
+  setDonut('donutMaint',    mPct, startA - circumference * aPct);
+  setDonut('donutInactive', iPct, startA - circumference * (aPct + mPct));
+
+  document.getElementById('donutLabel').textContent = Math.round(aPct * 100) + '%';
+
+  document.getElementById('donutLegend').innerHTML = [
+    { label:'Activos',         count:active,   color:'var(--green)' },
+    { label:'Mantenimiento',   count:maint,    color:'var(--yellow)' },
+    { label:'Inactivos',       count:inactive, color:'var(--accent)' },
+  ].map(l => `
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${l.color}"></div>
+      <span class="legend-text">${l.label}</span>
+      <span class="legend-val">${l.count}</span>
+    </div>
+  `).join('');
 }
 
-// ── Chips ──────────────────────────────────────────────────────────────────
-document.querySelectorAll('.chip').forEach(chip => {
-  chip.addEventListener('click', () => {
-    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-    chip.classList.add('active');
-    filterCat = chip.dataset.cat;
+// ── Profile ─────────────────────────────────────────────────────────────────────
+function renderProfile() {
+  document.getElementById('profTotal').textContent  = equipment.length;
+  document.getElementById('profActive').textContent = equipment.filter(e=>e.status==='active').length;
+  document.getElementById('profMaint').textContent  = equipment.filter(e=>e.status==='maint').length;
+  const th = document.documentElement.getAttribute('data-theme') || 'dark';
+  document.getElementById('profTheme').textContent = th === 'dark' ? 'Oscuro' : 'Claro';
+}
+
+// ── Misc ─────────────────────────────────────────────────────────────────────────
+function showNotif() { alert('Sin nuevas notificaciones.'); }
+function showAddEquip() { alert('Formulario para agregar equipo próximamente.'); }
+
+function goToView(name, cat) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const navEl = document.getElementById('nav-' + name);
+  if (navEl) navEl.classList.add('active');
+
+  const fab = document.getElementById('fabBtn');
+  fab.classList.toggle('hidden', name === 'detail' || name === 'reports' || name === 'profile');
+
+  if (name === 'list') {
+    if (cat) setFilter(cat);
     renderList();
-  });
+  }
+  if (name === 'reports')   renderReports();
+  if (name === 'profile')   renderProfile();
+  if (name === 'dashboard') renderDashboard();
+
+  prevView = currentView;
+  currentView = name;
+}
+
+// ── Chips ─────────────────────────────────────────────────────────────────────
+document.getElementById('catChips').addEventListener('click', e => {
+  const chip = e.target.closest('.chip');
+  if (!chip) return;
+  setFilter(chip.dataset.cat);
+  renderList();
 });
 
-// ── Search ─────────────────────────────────────────────────────────────────
+// ── Search ─────────────────────────────────────────────────────────────────────
 document.getElementById('searchInput').addEventListener('input', e => {
   filterSearch = e.target.value;
   renderList();
 });
 
-// ── Theme ──────────────────────────────────────────────────────────────────
+// ── Theme ─────────────────────────────────────────────────────────────────────
 (function() {
   var s = localStorage.getItem('verne_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', s);
   document.body.setAttribute('data-theme', s);
-  var btn = document.getElementById('themeBtn');
-  if (btn) btn.textContent = s === 'dark' ? '☀️' : '🌙';
 })();
 
 function toggleTheme() {
-  var cur = document.documentElement.getAttribute('data-theme') || 'dark';
+  var cur  = document.documentElement.getAttribute('data-theme') || 'dark';
   var next = cur === 'dark' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', next);
   document.body.setAttribute('data-theme', next);
   localStorage.setItem('verne_theme', next);
-  var btn = document.getElementById('themeBtn');
-  if (btn) btn.textContent = next === 'dark' ? '☀️' : '🌙';
+  if (currentView === 'profile') renderProfile();
 }
 
-// ── Init ───────────────────────────────────────────────────────────────────
-updateStats();
-renderList();
+// ── Clock ─────────────────────────────────────────────────────────────────────
+(function tick() {
+  var d = new Date();
+  var h = d.getHours(), m = d.getMinutes();
+  document.getElementById('clockTime').textContent =
+    String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+  setTimeout(tick, 10000);
+})();
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+renderDashboard();
 </script>
 </body>
 </html>
