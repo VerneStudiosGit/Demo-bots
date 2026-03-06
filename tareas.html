@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Lista de Tareas – Verne Studios</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0F1117;
+      --surface:  #1A1D27;
+      --surface2: #252836;
+      --primary:  #6C63FF;
+      --primary2: #A89CFF;
+      --accent:   #FF6584;
+      --green:    #43D9AD;
+      --yellow:   #FFD166;
+      --text:     #EAEAEA;
+      --muted:    #8A8FA8;
+      --border:   rgba(255,255,255,.07);
+      --radius:   18px;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bot: env(safe-area-inset-bottom, 0px);
+    }
+
+    html, body {
+      height: 100%;
+      background: #08090D;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Phone shell */
+    .shell {
+      max-width: 430px;
+      min-height: 100dvh;
+      margin: 0 auto;
+      background: var(--bg);
+      position: relative;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Status bar */
+    .status-bar {
+      height: calc(44px + var(--safe-top));
+      padding-top: var(--safe-top);
+      display: flex; align-items: center; justify-content: space-between;
+      padding-left: 20px; padding-right: 20px;
+      background: var(--bg);
+      position: sticky; top: 0; z-index: 50;
+      flex-shrink: 0;
+    }
+    .status-bar .time { font-size: .82rem; font-weight: 600; color: var(--text); }
+    .status-bar .icons { display: flex; gap: 6px; align-items: center; }
+    .status-bar .icons svg { fill: var(--text); }
+
+    /* Top bar */
+    .topbar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 8px 20px 16px;
+      background: var(--bg);
+      flex-shrink: 0;
+    }
+    .topbar .back-btn {
+      width: 38px; height: 38px; border-radius: 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; text-decoration: none; flex-shrink: 0;
+    }
+    .topbar .title-block { flex: 1; }
+    .topbar .title-block h1 { font-size: 1.15rem; font-weight: 700; }
+    .topbar .title-block p  { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+    .topbar .task-icon {
+      width: 38px; height: 38px; border-radius: 12px;
+      background: rgba(108,99,255,.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; flex-shrink: 0;
+    }
+
+    /* Filters */
+    .filters {
+      display: flex; gap: 10px;
+      padding: 0 20px 16px;
+      overflow-x: auto; scrollbar-width: none;
+      flex-shrink: 0;
+    }
+    .filters::-webkit-scrollbar { display: none; }
+    .filter-chip {
+      flex-shrink: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 40px;
+      padding: 7px 16px;
+      font-size: .8rem; font-weight: 500;
+      color: var(--muted); cursor: pointer;
+      transition: all .2s;
+    }
+    .filter-chip.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    /* Scrollable task list */
+    .task-list-wrap {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 20px;
+      padding-bottom: 20px;
+      scrollbar-width: none;
+    }
+    .task-list-wrap::-webkit-scrollbar { display: none; }
+
+    /* Empty state */
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 12px;
+      padding: 60px 20px;
+      text-align: center;
+    }
+    .empty-state .empty-emoji { font-size: 3.5rem; }
+    .empty-state h3 { font-size: 1rem; font-weight: 700; color: var(--text); }
+    .empty-state p  { font-size: .84rem; color: var(--muted); line-height: 1.6; }
+
+    /* Task item */
+    .task-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px 14px;
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: transform .15s, background .2s, opacity .2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .task-item:active { transform: scale(.98); }
+    .task-item.done { opacity: .6; }
+    .task-item.done .task-text { text-decoration: line-through; color: var(--muted); }
+
+    /* Checkbox */
+    .task-check {
+      width: 26px; height: 26px; flex-shrink: 0;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      background: transparent;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .25s;
+    }
+    .task-item.done .task-check {
+      background: var(--green);
+      border-color: var(--green);
+    }
+    .task-check svg { display: none; }
+    .task-item.done .task-check svg { display: block; }
+
+    /* Task text */
+    .task-text {
+      flex: 1; font-size: .92rem; font-weight: 500; line-height: 1.4;
+      transition: color .2s;
+    }
+
+    /* Long-press ripple */
+    .task-item.pressing {
+      background: rgba(108,99,255,.15);
+      border-color: rgba(108,99,255,.4);
+    }
+
+    /* Hold indicator bar */
+    .hold-bar {
+      position: absolute; bottom: 0; left: 0;
+      height: 2px; background: var(--primary);
+      width: 0%; border-radius: 0 2px 2px 0;
+      transition: width 0s;
+    }
+    .task-item.pressing .hold-bar {
+      width: 100%;
+      transition: width 0.6s linear;
+    }
+
+    /* Progress summary */
+    .progress-bar-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .progress-bar-wrap .prog-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px;
+    }
+    .progress-bar-wrap .prog-header span {
+      font-size: .82rem; font-weight: 600;
+    }
+    .progress-bar-wrap .prog-header .prog-count {
+      font-size: .78rem; color: var(--muted);
+    }
+    .prog-track {
+      height: 6px; background: var(--surface2); border-radius: 40px; overflow: hidden;
+    }
+    .prog-fill {
+      height: 100%; background: linear-gradient(90deg, var(--primary), var(--green));
+      border-radius: 40px;
+      transition: width .4s ease;
+    }
+
+    /* Bottom input area */
+    .input-area {
+      flex-shrink: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 14px 16px calc(14px + var(--safe-bot));
+      display: flex; align-items: center; gap: 10px;
+    }
+    .input-area input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 40px;
+      padding: 13px 18px;
+      color: var(--text); font-size: .9rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .input-area input:focus {
+      border-color: var(--primary);
+    }
+    .input-area input::placeholder { color: var(--muted); }
+    .add-btn {
+      flex-shrink: 0;
+      width: 48px; height: 48px;
+      background: var(--primary);
+      border: none; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(108,99,255,.4);
+      transition: transform .15s, box-shadow .2s;
+    }
+    .add-btn:active { transform: scale(.92); box-shadow: 0 2px 8px rgba(108,99,255,.3); }
+    .add-btn:disabled { opacity: .4; cursor: default; }
+
+    /* Modal overlay */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.65);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 200;
+      display: flex; align-items: flex-end; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity .25s;
+    }
+    .modal-overlay.show {
+      opacity: 1; pointer-events: all;
+    }
+    .modal-sheet {
+      background: var(--surface);
+      border-radius: 24px 24px 0 0;
+      padding: 28px 24px calc(28px + var(--safe-bot));
+      width: 100%; max-width: 430px;
+      transform: translateY(100%);
+      transition: transform .3s cubic-bezier(.32,1,.23,1);
+      border-top: 1px solid var(--border);
+    }
+    .modal-overlay.show .modal-sheet {
+      transform: translateY(0);
+    }
+    .modal-handle {
+      width: 40px; height: 4px;
+      background: var(--border);
+      border-radius: 4px;
+      margin: 0 auto 20px;
+    }
+    .modal-icon {
+      width: 56px; height: 56px; border-radius: 18px;
+      background: rgba(255,101,132,.15);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.6rem;
+      margin: 0 auto 16px;
+    }
+    .modal-sheet h3 {
+      font-size: 1.05rem; font-weight: 700;
+      text-align: center; margin-bottom: 8px;
+    }
+    .modal-sheet p {
+      font-size: .85rem; color: var(--muted);
+      text-align: center; line-height: 1.6;
+      margin-bottom: 24px;
+    }
+    .modal-sheet p strong { color: var(--text); font-weight: 600; }
+    .modal-actions { display: flex; gap: 10px; }
+    .modal-btn {
+      flex: 1; padding: 14px;
+      border-radius: 14px; border: none;
+      font-size: .9rem; font-weight: 600;
+      cursor: pointer; transition: opacity .15s;
+    }
+    .modal-btn:active { opacity: .7; }
+    .modal-btn.cancel {
+      background: var(--surface2);
+      color: var(--text);
+    }
+    .modal-btn.delete {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    /* Responsive */
+    @media (min-width: 500px) {
+      .shell {
+        margin-top: 20px; margin-bottom: 20px;
+        min-height: calc(100dvh - 40px);
+        border-radius: 44px;
+        box-shadow: 0 30px 80px rgba(0,0,0,.7);
+        overflow: hidden;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- Status bar -->
+  <div class="status-bar">
+    <span class="time" id="clock">9:41</span>
+    <div class="icons">
+      <svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="6" width="3" height="6" rx="1"/><rect x="4.5" y="4" width="3" height="8" rx="1"/><rect x="9" y="2" width="3" height="10" rx="1"/><rect x="13.5" y="0" width="3" height="12" rx="1"/></svg>
+      <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 9.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z"/><path d="M4.5 6.8A4.9 4.9 0 018 5.5c1.3 0 2.5.5 3.5 1.3" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M1.5 4A8 8 0 018 1.5 8 8 0 0114.5 4" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="22" height="10" rx="2.5" stroke-width="1.5" fill="none" stroke="currentColor"/><rect x="1.5" y="2.5" width="16" height="7" rx="1.5" fill="currentColor"/><path d="M23 4.5v3" stroke-width="1.5" stroke-linecap="round"/></svg>
+    </div>
+  </div>
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <a href="index.html" class="back-btn" aria-label="Volver">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </a>
+    <div class="title-block">
+      <h1>Lista de Tareas</h1>
+      <p id="subtitle">0 tareas pendientes</p>
+    </div>
+    <div class="task-icon">✅</div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="filter-chip active" data-filter="all">Todas</div>
+    <div class="filter-chip" data-filter="pending">Pendientes</div>
+    <div class="filter-chip" data-filter="done">Completadas</div>
+  </div>
+
+  <!-- Task list -->
+  <div class="task-list-wrap" id="taskListWrap">
+    <!-- Progress bar injected by JS -->
+    <div id="progressSection"></div>
+    <!-- Tasks rendered by JS -->
+    <div id="taskList"></div>
+    <!-- Empty state -->
+    <div class="empty-state" id="emptyState">
+      <div class="empty-emoji">📋</div>
+      <h3>Sin tareas aún</h3>
+      <p>Agrega tu primera tarea usando el campo de texto de abajo.</p>
+    </div>
+  </div>
+
+  <!-- Bottom input -->
+  <div class="input-area">
+    <input type="text" id="taskInput" placeholder="Nueva tarea…" autocomplete="off" />
+    <button class="add-btn" id="addBtn" disabled aria-label="Agregar tarea">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+
+</div>
+
+<!-- Delete confirmation modal -->
+<div class="modal-overlay" id="deleteModal" role="dialog" aria-modal="true">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-icon">🗑️</div>
+    <h3>¿Borrar tarea?</h3>
+    <p id="deleteModalText">¿Deseas eliminar esta tarea?</p>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" id="cancelDelete">Cancelar</button>
+      <button class="modal-btn delete" id="confirmDelete">Sí, borrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────
+  let tasks = JSON.parse(localStorage.getItem('verne_tasks') || '[]');
+  let currentFilter = 'all';
+  let pendingDeleteId = null;
+  let holdTimer = null;
+  let holdItem = null;
+
+  // ── Persist ────────────────────────────────────────────────────
+  function save() {
+    localStorage.setItem('verne_tasks', JSON.stringify(tasks));
+  }
+
+  // ── Clock ──────────────────────────────────────────────────────
+  function updateClock() {
+    const now = new Date();
+    const h = now.getHours().toString().padStart(2, '0');
+    const m = now.getMinutes().toString().padStart(2, '0');
+    document.getElementById('clock').textContent = h + ':' + m;
+  }
+  updateClock();
+  setInterval(updateClock, 10000);
+
+  // ── Render ─────────────────────────────────────────────────────
+  function render() {
+    const listEl    = document.getElementById('taskList');
+    const emptyEl   = document.getElementById('emptyState');
+    const progSec   = document.getElementById('progressSection');
+    const subtitleEl = document.getElementById('subtitle');
+
+    const pending  = tasks.filter(t => !t.done).length;
+    const total    = tasks.length;
+    const done     = total - pending;
+    const pct      = total === 0 ? 0 : Math.round((done / total) * 100);
+
+    subtitleEl.textContent = pending === 0 && total > 0
+      ? '¡Todo listo! 🎉'
+      : pending === 1
+        ? '1 tarea pendiente'
+        : pending + ' tareas pendientes';
+
+    // Progress bar (only when tasks exist)
+    if (total > 0) {
+      progSec.innerHTML = `
+        <div class="progress-bar-wrap">
+          <div class="prog-header">
+            <span>Progreso</span>
+            <span class="prog-count">${done} / ${total} completadas</span>
+          </div>
+          <div class="prog-track">
+            <div class="prog-fill" style="width:${pct}%"></div>
+          </div>
+        </div>`;
+    } else {
+      progSec.innerHTML = '';
+    }
+
+    // Filtered tasks
+    let visible = tasks;
+    if (currentFilter === 'pending') visible = tasks.filter(t => !t.done);
+    if (currentFilter === 'done')    visible = tasks.filter(t => t.done);
+
+    if (visible.length === 0) {
+      listEl.innerHTML = '';
+      emptyEl.style.display = (tasks.length === 0 || currentFilter !== 'all') ? 'flex' : 'none';
+      if (tasks.length > 0 && currentFilter !== 'all') {
+        emptyEl.querySelector('h3').textContent =
+          currentFilter === 'pending' ? 'Sin pendientes' : 'Sin completadas';
+        emptyEl.querySelector('p').textContent =
+          currentFilter === 'pending'
+            ? '¡Todas tus tareas están completadas!'
+            : 'Completa una tarea para verla aquí.';
+        emptyEl.querySelector('.empty-emoji').textContent =
+          currentFilter === 'pending' ? '🎉' : '📭';
+      } else {
+        emptyEl.querySelector('h3').textContent = 'Sin tareas aún';
+        emptyEl.querySelector('p').textContent = 'Agrega tu primera tarea usando el campo de texto de abajo.';
+        emptyEl.querySelector('.empty-emoji').textContent = '📋';
+      }
+      return;
+    }
+
+    emptyEl.style.display = 'none';
+
+    listEl.innerHTML = visible.map(task => `
+      <div class="task-item ${task.done ? 'done' : ''}"
+           data-id="${task.id}"
+           role="listitem">
+        <div class="task-check">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+        <span class="task-text">${escHtml(task.text)}</span>
+        <div class="hold-bar"></div>
+      </div>
+    `).join('');
+
+    // Attach events to each item
+    listEl.querySelectorAll('.task-item').forEach(el => {
+      el.addEventListener('click', onItemClick);
+      el.addEventListener('mousedown',  startHold);
+      el.addEventListener('touchstart', startHold, { passive: true });
+      el.addEventListener('mouseup',   cancelHold);
+      el.addEventListener('mouseleave',cancelHold);
+      el.addEventListener('touchend',  cancelHold);
+      el.addEventListener('touchcancel',cancelHold);
+    });
+  }
+
+  // ── HTML escape ────────────────────────────────────────────────
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Toggle done ────────────────────────────────────────────────
+  function onItemClick(e) {
+    // Ignore if this was a long-press
+    if (holdItem) return;
+    const id = this.dataset.id;
+    const task = tasks.find(t => t.id === id);
+    if (task) {
+      task.done = !task.done;
+      save();
+      render();
+    }
+  }
+
+  // ── Long press ─────────────────────────────────────────────────
+  function startHold(e) {
+    holdItem = null;
+    const el = e.currentTarget;
+    el.classList.add('pressing');
+    holdTimer = setTimeout(() => {
+      holdItem = el;
+      el.classList.remove('pressing');
+      const id = el.dataset.id;
+      const task = tasks.find(t => t.id === id);
+      if (task) openDeleteModal(task);
+    }, 600);
+  }
+
+  function cancelHold(e) {
+    if (holdTimer) {
+      clearTimeout(holdTimer);
+      holdTimer = null;
+    }
+    if (e && e.currentTarget) {
+      e.currentTarget.classList.remove('pressing');
+    }
+    // Reset holdItem shortly so click handler knows
+    setTimeout(() => { holdItem = null; }, 50);
+  }
+
+  // ── Delete modal ───────────────────────────────────────────────
+  function openDeleteModal(task) {
+    pendingDeleteId = task.id;
+    document.getElementById('deleteModalText').innerHTML =
+      '¿Deseas eliminar la tarea <strong>"' + escHtml(task.text) + '"</strong>?';
+    document.getElementById('deleteModal').classList.add('show');
+  }
+
+  function closeDeleteModal() {
+    pendingDeleteId = null;
+    document.getElementById('deleteModal').classList.remove('show');
+  }
+
+  document.getElementById('cancelDelete').addEventListener('click', closeDeleteModal);
+
+  document.getElementById('confirmDelete').addEventListener('click', () => {
+    if (pendingDeleteId) {
+      tasks = tasks.filter(t => t.id !== pendingDeleteId);
+      save();
+      render();
+    }
+    closeDeleteModal();
+  });
+
+  // Close modal on backdrop click
+  document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) closeDeleteModal();
+  });
+
+  // ── Add task ───────────────────────────────────────────────────
+  const inputEl = document.getElementById('taskInput');
+  const addBtn  = document.getElementById('addBtn');
+
+  inputEl.addEventListener('input', () => {
+    addBtn.disabled = inputEl.value.trim() === '';
+  });
+
+  function addTask() {
+    const text = inputEl.value.trim();
+    if (!text) return;
+    tasks.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+      text,
+      done: false,
+      createdAt: Date.now()
+    });
+    save();
+    inputEl.value = '';
+    addBtn.disabled = true;
+    currentFilter = 'all';
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    document.querySelector('[data-filter="all"]').classList.add('active');
+    render();
+    // Scroll to bottom of list
+    const wrap = document.getElementById('taskListWrap');
+    wrap.scrollTop = wrap.scrollHeight;
+  }
+
+  addBtn.addEventListener('click', addTask);
+  inputEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter') addTask();
+  });
+
+  // ── Filters ────────────────────────────────────────────────────
+  document.querySelectorAll('.filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      currentFilter = chip.dataset.filter;
+      render();
+    });
+  });
+
+  // ── Initial render ─────────────────────────────────────────────
+  render();
+</script>
+</body>
+</html>
