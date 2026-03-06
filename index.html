@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tecnología e Inteligencia Artificial</title>
+  <style>
+    /* ── Reset & base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --red:   #C0392B;
+      --red2:  #E74C3C;
+      --blue:  #1A3A6B;
+      --blue2: #2980B9;
+      --white: #FFFFFF;
+      --light: #F4F7FB;
+      --dark:  #0D1B2A;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--light);
+      color: var(--dark);
+      line-height: 1.7;
+    }
+
+    /* ── Navbar ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--blue);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem;
+      height: 64px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.35);
+    }
+
+    nav .logo {
+      color: var(--white);
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: .05em;
+    }
+    nav .logo span { color: var(--red2); }
+
+    nav ul {
+      list-style: none;
+      display: flex; gap: 2rem;
+    }
+    nav ul li a {
+      color: var(--white);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: .95rem;
+      transition: color .2s;
+    }
+    nav ul li a:hover { color: var(--red2); }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, var(--blue) 0%, var(--dark) 60%, var(--red) 100%);
+      color: var(--white);
+      text-align: center;
+      padding: 120px 2rem 100px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ccircle cx='30' cy='30' r='1.5' fill='rgba(255,255,255,.08)'/%3E%3C/svg%3E") repeat;
+    }
+
+    .hero h1 {
+      position: relative;
+      font-size: clamp(2rem, 5vw, 3.8rem);
+      font-weight: 800;
+      margin-bottom: 1.2rem;
+      line-height: 1.15;
+    }
+    .hero h1 .accent { color: var(--red2); }
+
+    .hero p {
+      position: relative;
+      max-width: 680px; margin: 0 auto 2.4rem;
+      font-size: 1.15rem; opacity: .9;
+    }
+
+    .hero .btn {
+      position: relative;
+      display: inline-block;
+      background: var(--red2);
+      color: var(--white);
+      padding: .85rem 2.4rem;
+      border-radius: 40px;
+      font-weight: 700;
+      font-size: 1rem;
+      text-decoration: none;
+      transition: transform .2s, box-shadow .2s;
+      box-shadow: 0 4px 20px rgba(231,76,60,.45);
+    }
+    .hero .btn:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(231,76,60,.55); }
+
+    /* ── Section commons ── */
+    section { padding: 80px 2rem; }
+    .section-title {
+      text-align: center;
+      font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+      font-weight: 800;
+      margin-bottom: 3rem;
+      color: var(--blue);
+    }
+    .section-title span { color: var(--red2); }
+
+    /* ── Cards grid ── */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--white);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 4px 24px rgba(26,58,107,.1);
+      border-top: 5px solid var(--blue2);
+      transition: transform .25s, box-shadow .25s;
+    }
+    .card:hover { transform: translateY(-6px); box-shadow: 0 10px 36px rgba(26,58,107,.18); }
+    .card:nth-child(odd) { border-top-color: var(--red2); }
+
+    .card .icon {
+      font-size: 2.6rem;
+      margin-bottom: .8rem;
+    }
+    .card h3 {
+      font-size: 1.2rem;
+      color: var(--blue);
+      margin-bottom: .6rem;
+    }
+    .card p { font-size: .95rem; color: #444; }
+
+    /* ── Stats strip ── */
+    .stats-strip {
+      background: var(--blue);
+      color: var(--white);
+      padding: 60px 2rem;
+    }
+    .stats-strip .section-title { color: var(--white); }
+
+    .stats-grid {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 3rem;
+      max-width: 900px; margin: 0 auto;
+    }
+    .stat { text-align: center; }
+    .stat .number {
+      font-size: 3rem; font-weight: 800;
+      color: var(--red2);
+      display: block;
+    }
+    .stat p { font-size: .95rem; opacity: .85; }
+
+    /* ── Timeline ── */
+    .timeline-wrap { max-width: 820px; margin: 0 auto; }
+    .timeline-item {
+      display: flex; gap: 1.5rem;
+      margin-bottom: 2.4rem;
+      align-items: flex-start;
+    }
+    .timeline-dot {
+      flex-shrink: 0;
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: var(--red2);
+      color: var(--white);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 1rem;
+    }
+    .timeline-item:nth-child(even) .timeline-dot { background: var(--blue2); }
+    .timeline-content h3 { color: var(--blue); font-size: 1.1rem; margin-bottom: .35rem; }
+    .timeline-content p { font-size: .93rem; color: #555; }
+
+    /* ── CTA ── */
+    .cta-section {
+      background: linear-gradient(120deg, var(--red) 0%, var(--red2) 50%, var(--blue2) 100%);
+      color: var(--white);
+      text-align: center;
+      padding: 80px 2rem;
+    }
+    .cta-section h2 { font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 800; margin-bottom: 1rem; }
+    .cta-section p { max-width: 580px; margin: 0 auto 2rem; opacity: .92; }
+    .cta-section .btn-white {
+      display: inline-block;
+      background: var(--white);
+      color: var(--red);
+      padding: .85rem 2.4rem;
+      border-radius: 40px;
+      font-weight: 700; font-size: 1rem;
+      text-decoration: none;
+      transition: transform .2s, box-shadow .2s;
+      box-shadow: 0 4px 16px rgba(0,0,0,.2);
+    }
+    .cta-section .btn-white:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(0,0,0,.3); }
+
+    /* ── Footer ── */
+    footer {
+      background: var(--dark);
+      color: rgba(255,255,255,.6);
+      text-align: center;
+      padding: 2rem;
+      font-size: .88rem;
+    }
+    footer span { color: var(--red2); }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav>
+    <div class="logo">Tech<span>AI</span></div>
+    <ul>
+      <li><a href="#tecnologia">Tecnología</a></li>
+      <li><a href="#ia">IA</a></li>
+      <li><a href="#historia">Historia</a></li>
+      <li><a href="#contacto">Contacto</a></li>
+    </ul>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <h1>El Futuro es <span class="accent">Inteligencia</span><br>Artificial</h1>
+    <p>Exploramos cómo la tecnología y la IA están transformando el mundo, redefiniendo industrias y abriendo posibilidades antes inimaginables.</p>
+    <a href="#tecnologia" class="btn">Descubrir más</a>
+  </section>
+
+  <!-- Tecnología -->
+  <section id="tecnologia" style="background: var(--light);">
+    <h2 class="section-title">¿Qué es la <span>Tecnología</span>?</h2>
+    <div class="cards">
+      <div class="card">
+        <div class="icon">💻</div>
+        <h3>Computación en la Nube</h3>
+        <p>Infraestructuras escalables que permiten almacenar y procesar datos de forma global, sin límites físicos.</p>
+      </div>
+      <div class="card">
+        <div class="icon">📡</div>
+        <h3>Conectividad 5G</h3>
+        <p>Redes ultrarrápidas que habilitan comunicaciones en tiempo real y soportan millones de dispositivos IoT.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🔐</div>
+        <h3>Ciberseguridad</h3>
+        <p>Protocolos y sistemas que blindan la información sensible frente a amenazas digitales en constante evolución.</p>
+      </div>
+      <div class="card">
+        <div class="icon">⛓️</div>
+        <h3>Blockchain</h3>
+        <p>Registros distribuidos e inmutables que garantizan la transparencia y confianza en transacciones digitales.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats -->
+  <div class="stats-strip">
+    <h2 class="section-title">La IA en <span style="color:var(--red2)">Números</span></h2>
+    <div class="stats-grid">
+      <div class="stat"><span class="number">$1.8T</span><p>Valor de mercado global de IA proyectado para 2030</p></div>
+      <div class="stat"><span class="number">97M</span><p>Nuevos empleos relacionados con IA para 2025</p></div>
+      <div class="stat"><span class="number">15.7T</span><p>Dólares que la IA aportará al PIB mundial</p></div>
+      <div class="stat"><span class="number">40%</span><p>De empresas Fortune 500 ya usan IA de forma activa</p></div>
+    </div>
+  </div>
+
+  <!-- IA -->
+  <section id="ia" style="background: var(--white);">
+    <h2 class="section-title">Inteligencia <span>Artificial</span></h2>
+    <div class="cards">
+      <div class="card">
+        <div class="icon">🤖</div>
+        <h3>Machine Learning</h3>
+        <p>Algoritmos que aprenden de los datos, detectan patrones y mejoran sus predicciones sin ser programados explícitamente.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🧠</div>
+        <h3>Redes Neuronales</h3>
+        <p>Modelos inspirados en el cerebro humano capaces de procesar imágenes, texto y audio con precisión excepcional.</p>
+      </div>
+      <div class="card">
+        <div class="icon">💬</div>
+        <h3>Procesamiento de Lenguaje Natural</h3>
+        <p>Tecnología que permite a las máquinas comprender, interpretar y generar lenguaje humano de manera fluida.</p>
+      </div>
+      <div class="card">
+        <div class="icon">👁️</div>
+        <h3>Visión por Computadora</h3>
+        <p>Sistemas que analizan y comprenden imágenes y vídeos, desde diagnósticos médicos hasta vehículos autónomos.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🎯</div>
+        <h3>IA Generativa</h3>
+        <p>Modelos como GPT o DALL-E que crean contenido original: texto, imágenes, música y código a partir de instrucciones simples.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🚗</div>
+        <h3>Robótica Inteligente</h3>
+        <p>Robots equipados con IA que colaboran con humanos en fábricas, hospitales y entornos de alta precisión.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Historia / Timeline -->
+  <section id="historia" style="background: var(--light);">
+    <h2 class="section-title">Historia de la <span>IA</span></h2>
+    <div class="timeline-wrap">
+      <div class="timeline-item">
+        <div class="timeline-dot">1950</div>
+        <div class="timeline-content">
+          <h3>Test de Turing</h3>
+          <p>Alan Turing propone la pregunta: «¿Pueden las máquinas pensar?», sentando las bases filosóficas de la IA.</p>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot">1956</div>
+        <div class="timeline-content">
+          <h3>Nace el término «Inteligencia Artificial»</h3>
+          <p>John McCarthy acuña el nombre en la Conferencia de Dartmouth, inaugurando la IA como disciplina científica.</p>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot">1997</div>
+        <div class="timeline-content">
+          <h3>Deep Blue vence al campeón de ajedrez</h3>
+          <p>La supercomputadora de IBM derrota a Garry Kasparov, demostrando la capacidad de cálculo de las máquinas.</p>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot">2012</div>
+        <div class="timeline-content">
+          <h3>Revolución del Deep Learning</h3>
+          <p>AlexNet bate récords en reconocimiento de imágenes, abriendo la era moderna del aprendizaje profundo.</p>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot">2022</div>
+        <div class="timeline-content">
+          <h3>IA Generativa para todos</h3>
+          <p>ChatGPT supera los 100 millones de usuarios en dos meses, democratizando el acceso a la IA avanzada.</p>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot">2026</div>
+        <div class="timeline-content">
+          <h3>IA Agentica y Multimodal</h3>
+          <p>Agentes autónomos que ven, escuchan y actúan en el mundo digital, integrándose en cada aspecto de la vida.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section id="contacto" class="cta-section">
+    <h2>¿Listo para el futuro?</h2>
+    <p>La inteligencia artificial no es el mañana, es el hoy. Únete a la revolución tecnológica y transforma tu mundo.</p>
+    <a href="mailto:hola@verneestudios.com" class="btn-white">Contáctanos</a>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <p>© 2026 <span>Verne Studios</span> · Demo Página · Impulsado por IA</p>
+  </footer>
+
+</body>
+</html>
