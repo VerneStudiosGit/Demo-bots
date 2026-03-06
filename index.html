@@ -334,6 +334,43 @@
     /* ── Divider ── */
     .divider { height: 1px; background: var(--border); margin: 0 20px 24px; }
 
+
+    /* ── Light theme overrides ── */
+    [data-theme="light"] {
+      --bg:       #F2F3F7;
+      --surface:  #FFFFFF;
+      --surface2: #E8E9F0;
+      --text:     #1A1A2E;
+      --muted:    #6B7280;
+      --border:   rgba(0,0,0,.08);
+    }
+    [data-theme="light"] html,
+    [data-theme="light"] body,
+    html[data-theme="light"],
+    body[data-theme="light"] {
+      background: #E8E9F0;
+    }
+    [data-theme="light"] .shell {
+      background: var(--bg);
+      box-shadow: 0 30px 80px rgba(0,0,0,.15);
+    }
+    [data-theme="light"] .featured-card {
+      background: linear-gradient(135deg, #E8E5FF 0%, #D4CEFF 60%, #B9B3FF33 100%);
+      border-color: rgba(108,99,255,.25);
+    }
+
+    /* ── Theme toggle button ── */
+    .theme-btn {
+      width: 38px; height: 38px; border-radius: 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 1.1rem;
+      transition: background .2s;
+      flex-shrink: 0;
+    }
+    .theme-btn:active { opacity: .7; }
+
     /* ── Responsive for wide screens ── */
     @media (min-width: 500px) {
       .shell {
@@ -372,6 +409,7 @@
         <p>Buenos días 👋</p>
         <h2>Explora la IA</h2>
       </div>
+      <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" aria-label="Cambiar tema">☀️</button>
       <div class="avatar">V</div>
     </div>
 
@@ -585,6 +623,33 @@
       item.classList.add('active');
     });
   });
+
+  // ── Theme ──────────────────────────────────────────────────────────────────
+  (function() {
+    var saved = localStorage.getItem('verne_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+    document.body.setAttribute('data-theme', saved);
+  })();
+
+  function toggleTheme() {
+    var current = document.documentElement.getAttribute('data-theme') || 'dark';
+    var next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    document.body.setAttribute('data-theme', next);
+    localStorage.setItem('verne_theme', next);
+    var btn = document.getElementById('themeBtn');
+    if (btn) btn.textContent = next === 'dark' ? '☀️' : '🌙';
+  }
+
+  // Set initial icon
+  (function() {
+    var btn = document.getElementById('themeBtn');
+    if (btn) {
+      var t = localStorage.getItem('verne_theme') || 'dark';
+      btn.textContent = t === 'dark' ? '☀️' : '🌙';
+    }
+  })();
+
 </script>
 
 </body>
